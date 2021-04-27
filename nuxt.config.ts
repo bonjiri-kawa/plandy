@@ -24,7 +24,10 @@ const nuxtConfig: Configuration = {
   css: [],
 
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
-  plugins: ['@/plugins/composition-api'],
+  plugins: [
+    '@/plugins/composition-api',
+    '@/plugins/vue2-google-maps'
+  ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
   components: true,

@@ -15,6 +15,7 @@ import { setContext, getLocation, getRouteData, normalizeError } from './utils'
 import nuxt_plugin_plugin_460056d5 from 'nuxt_plugin_plugin_460056d5' // Source: ./components/plugin.js (mode: 'all')
 import nuxt_plugin_axios_6676596b from 'nuxt_plugin_axios_6676596b' // Source: ./axios.js (mode: 'all')
 import nuxt_plugin_compositionapi_fa0591fa from 'nuxt_plugin_compositionapi_fa0591fa' // Source: ../plugins/composition-api (mode: 'all')
+import nuxt_plugin_vue2googlemaps_4309cabe from 'nuxt_plugin_vue2googlemaps_4309cabe' // Source: ../plugins/vue2-google-maps (mode: 'all')
 
 // Component: <ClientOnly>
 Vue.component(ClientOnly.name, ClientOnly)
@@ -184,6 +185,10 @@ async function createApp(ssrContext, config = {}) {
 
   if (typeof nuxt_plugin_compositionapi_fa0591fa === 'function') {
     await nuxt_plugin_compositionapi_fa0591fa(app.context, inject)
+  }
+
+  if (typeof nuxt_plugin_vue2googlemaps_4309cabe === 'function') {
+    await nuxt_plugin_vue2googlemaps_4309cabe(app.context, inject)
   }
 
   // Lock enablePreview in context
