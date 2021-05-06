@@ -283,8 +283,12 @@ console.log(placeService);
       DR.setMap(map)
 
       let request = {
-        origin: new google.maps.LatLng(34.364991, 132.470085),
-        destination: new google.maps.LatLng(35.366, 133.471),
+        //hamada それぞれLatLng()の引数は緯度、経度を示している。
+        //hamada originは出発地点を示している
+        origin: new google.maps.LatLng(34.544991, 132.470085),
+        //hamada destinationは目的地を示している。
+        destination: new google.maps.LatLng(34.366, 133.471),
+        //hamada waypoints中継地点を示している。
         waypoints: [
           {location: new google.maps.LatLng(34.365, 132.4708)}
         ],
