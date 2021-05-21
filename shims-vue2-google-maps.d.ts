@@ -1,7 +1,9 @@
-declare module "vue2-google-maps" {
-  import { PluginFunction } from "vue";
-  export const install: PluginFunction<{}>;
+// declare module "vue2-google-maps" {
+//   import { PluginFunction } from "vue";
+//   export const install: PluginFunction<{}>;
 
-  // put here all source from
-  // https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/googlemaps/index.d.ts
-}
+//   // put here all source from
+//   // https://raw.githubusercontent.com/DefinitelyTyped/DefinitelyTyped/master/types/googlemaps/index.d.ts
+// }
+
+declare module "vue2-google-maps";
