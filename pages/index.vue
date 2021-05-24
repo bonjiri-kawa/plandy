@@ -11,7 +11,7 @@
     <div>
       地名<input type="text" id="addressInput" v-model="search">
       キーワード<input type="text" id="keywordInput" v-model="searchKeyword">
-      <button @click="searchCandidate">検索</button>
+      <button type="button" class="btn btn-primary" @click="searchCandidate">検索</button>
     </div>
     {{placesList}}
     <GmapMap

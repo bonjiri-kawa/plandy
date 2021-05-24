@@ -17,7 +17,10 @@ const nuxtConfig: Configuration = {
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { hid: 'description', name: 'description', content: '' },
     ],
-    link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
+    link: [
+      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+      { rel: 'stylesheet', href: 'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css' }
+    ],
   },
 
   // Global CSS: https://go.nuxtjs.dev/config-css
@@ -44,7 +47,7 @@ const nuxtConfig: Configuration = {
   modules: [
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
-    '@nuxtjs/vuetify',
+    '@nuxtjs/vuetify'
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
