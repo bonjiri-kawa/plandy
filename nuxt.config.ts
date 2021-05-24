@@ -26,7 +26,8 @@ const nuxtConfig: Configuration = {
   // Plugins to run before rendering page: https://go.nuxtjs.dev/config-plugins
   plugins: [
     '@/plugins/composition-api',
-    '@/plugins/vue2-google-maps'
+    '@/plugins/vue2-google-maps',
+    // '@/plugins/vuetify'
   ],
 
   // Auto import components: https://go.nuxtjs.dev/config-components
@@ -36,12 +37,14 @@ const nuxtConfig: Configuration = {
   buildModules: [
     // https://go.nuxtjs.dev/typescript
     '@nuxt/typescript-build',
+    '@nuxtjs/vuetify',
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
+    '@nuxtjs/vuetify',
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
@@ -54,6 +57,18 @@ const nuxtConfig: Configuration = {
     //   app: ({ isDev }) => isDev ? '[name].[hash].js' : '[chunkhash].js',
     //   chunk: ({ isDev }) => isDev ? '[name].[hash].js' : '[chunkhash].js'
     // },
+    loaders: {
+      // SCSSを扱う.
+      scss: {
+        // デフォルト値だと動かないので、sass(Dart Sass)で上書き.
+        implementation: require('sass'),
+        // sassのオプションにfibersを設定.
+        sassOptions: {
+          // fibersプロパティではないので注意. (ややこしい)
+          fiber: require('fibers'),
+        },
+      },
+    },
   },
 }
 module.exports = nuxtConfig

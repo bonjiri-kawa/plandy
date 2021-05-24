@@ -57,7 +57,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-declare var google: any;
+declare let google: any;
 
 interface Data {
   maplocation: {lng: number, lat: number}
@@ -166,7 +166,7 @@ console.log('???')
       //現在地取得負荷の場合は東京駅周辺に移動
       this.maplocation.lat = 35.6813092;
       this.maplocation.lng = 139.7677269;
-}
+    }
   },
   // computed: {
   //   returnPlaceList() {
