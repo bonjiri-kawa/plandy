@@ -1,17 +1,37 @@
 <template>
-  <div>
+  <v-app>
     <!-- <input type="text" v-model="address">
     <button type="button" @click="mapSearch">検索</button> -->
     <div>
-      <button @click="getLocation" class="button-color">現在地</button>
+      <v-btn @click="getLocation" color="success">現在地</v-btn>
+      <v-btn @click="searchRoot" color="error">ルート検索</v-btn>
     </div>
+    
     <div>
-      <button @click="searchRoot" class="button-color-search">ルート検索</button>
-    </div>
-    <div>
-      地名<input type="text" id="addressInput" v-model="search">
-      キーワード<input type="text" id="keywordInput" v-model="searchKeyword">
-      <button @click="searchCandidate">検索</button>
+      <v-layout>
+        <v-flex xs12 md4>
+          <v-text-field
+            v-model="search"
+            id="addressInput"
+            :rules="searchRules"
+            :counter="10"
+            label="地名"
+            required
+          ></v-text-field>
+        </v-flex>
+        <v-flex xs12 md4>
+          <v-text-field
+            v-model="searchKeyword"
+            id="keywordInput"
+            :rules="searchKeywordRules"
+            :counter="10"
+            label="キーワード"
+            required
+          ></v-text-field>
+        </v-flex>
+        
+        <v-btn @click="searchCandidate" color="success">検索</v-btn>
+      </v-layout>
     </div>
     {{placesList}}
     <GmapMap
@@ -52,7 +72,7 @@
         </li>
       </ul>
     </div>
-  </div>
+  </v-app>
 </template>
 
 <script lang="ts">
@@ -81,6 +101,10 @@ interface Data {
   placesList: string[]
   map: any
   dateSpots: string[]
+  valid: boolean
+  email: string
+  emailRules: any[]
+  nameRules: any[]
 }
 
 export default Vue.extend({
@@ -126,7 +150,19 @@ export default Vue.extend({
       search: '',
       searchKeyword: '',
       placesList: [],
+      
+      // vuetify-input
       map: null,
+      valid: false,
+      email: '',
+      searchRules: [
+        v => !!v || '地名は必須です',
+        v => v.length <= 10 || '地名は10文字以内で入力してください。'
+      ],
+      searchKeywordRules: [
+        v => !!v || 'キーワードは必須です',
+        v => v.length <= 10 || 'キーワードは10文字以内で入力してください'
+      ]
     }
   },
   async mounted() {
