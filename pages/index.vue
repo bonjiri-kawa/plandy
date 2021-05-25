@@ -13,8 +13,6 @@
           <v-text-field
             v-model="search"
             id="addressInput"
-            :rules="searchRules"
-            :counter="10"
             label="地名"
             required
           ></v-text-field>
@@ -23,8 +21,6 @@
           <v-text-field
             v-model="searchKeyword"
             id="keywordInput"
-            :rules="searchKeywordRules"
-            :counter="10"
             label="キーワード"
             required
           ></v-text-field>
@@ -103,8 +99,6 @@ interface Data {
   dateSpots: string[]
   valid: boolean
   email: string
-  emailRules: any[]
-  nameRules: any[]
 }
 
 export default Vue.extend({
@@ -155,14 +149,6 @@ export default Vue.extend({
       map: null,
       valid: false,
       email: '',
-      searchRules: [
-        v => !!v || '地名は必須です',
-        v => v.length <= 10 || '地名は10文字以内で入力してください。'
-      ],
-      searchKeywordRules: [
-        v => !!v || 'キーワードは必須です',
-        v => v.length <= 10 || 'キーワードは10文字以内で入力してください'
-      ]
     }
   },
   async mounted() {
@@ -405,7 +391,7 @@ console.log(placeService);
       if(status === google.maps.places.PlacesServiceStatus.OK) {
         //検索結果をplacesList配列に連結
         for(let i = 0; i < results.length; i++) {
-console.log('results', results);
+          console.log('results', results);
           this.placesList = this.placesList.concat(results[i].name);
         }
       }

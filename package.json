@@ -47,7 +47,7 @@
     "pug": "^3.0.0",
     "pug-plain-loader": "^1.1.0",
     "sass": "^1.33.0",
-    "sass-loader": "^11.1.1",
+    "sass-loader": "^7.1.0",
     "ts-jest": "^26.4.4",
     "vue-jest": "^3.0.4",
     "vuex-composition-helpers": "^1.0.22",
