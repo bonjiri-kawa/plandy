@@ -22,6 +22,12 @@
     <div class="pa-1">
       <v-btn @click="initMap">initMap</v-btn>
     </div>
+    <div class="pa-1">
+      <v-btn @click="setCircle">半径セット</v-btn>
+    </div>
+    <div>
+      <v-btn @click="deleteOutOfCirclePin">範囲外のピン消し</v-btn>
+    </div>
     <v-col>
       <v-row justify="end">
           <v-btn @click="backToBeforeMap">戻る</v-btn>
@@ -207,7 +213,7 @@ console.log('hogehoge')
     setPlaceMakers() {
       let map = (this as any).$refs.mapRef.$mapObject;
       let placeService = new google.maps.places.PlacesService(map);
-
+      let _this = this;
       this.DS = new google.maps.DirectionsService();
       this.DR = new google.maps.DirectionsRenderer();
       //Places APIのnearbySearchを使用する
@@ -216,7 +222,7 @@ console.log('hogehoge')
           location: new google.maps.LatLng(this.maplocation.lat, this.maplocation.lng),
           radius: '1000',
           type: ['restaurant'],
-          keyword: '寿司'
+          keyword: ''
         },
         function(this: any, results: any, status: any) {
 console.log('Status', google.maps.places.PlacesServiceStatus);
@@ -239,6 +245,7 @@ console.log('results', results);
               };
               this.markers.push(maker);
             });
+            _this.setCircle();
           }
         }.bind(this)
       );
@@ -247,7 +254,6 @@ console.log('results', results);
       let geocoder = new google.maps.Geocoder();
       let _this = this;
       geocoder.geocode({'address': this.destination, 'language': 'ja'}, function(this: any, results: any, status: any) {
-console.log('geocoder', geocoder);
         if(status === google.maps.GeocoderStatus.OK) {
           let latLngArr = results[0].geometry.location.toUrlValue();
           let Arrayltlg = latLngArr.split(",");
@@ -266,7 +272,7 @@ console.log('geocoder', geocoder);
           placeService.nearbySearch(
             {
               location: new google.maps.LatLng(_this.lat, _this.lng),
-              radius: '500',
+              radius: '1000',
               type: ['restaurant'],
               keyword: _this.keyword
             },
@@ -289,6 +295,7 @@ console.log('geocoder', geocoder);
                   _this.markers.push(maker);
                   console.log('markers', _this.markers);
                 });
+                _this.setCircle();
               }
             }.bind(_this)
           )
@@ -344,45 +351,138 @@ console.log(directionsData);
         }
       );
     },
+    setCircle() {
+      let map = (this as any).$refs.mapRef.$mapObject;
+      new google.maps.Circle({
+        center: {lat: this.maplocation.lat, lng: this.maplocation.lng},
+        fillColor: '#CCFFFF',
+        fillOpacity: 0.5,
+        map: map,
+        radius: 1000,
+        strokeColor: '#00FFFF',
+        strokeOpacity: 1,
+        strokeWeight: 1
+      })
+    },
     onClickMarker(index: number, m: {title: string, position: {lat: () => void, lng: () => void}}): void {
       let _this = this
-      if(m) {
-        this.dateSpots.push(m.title);
-        this.DS = new google.maps.DirectionsService();
+      if(this.DR === null) {
         this.DR = new google.maps.DirectionsRenderer();
-        // const _this = this
+      }
+      //m取れてるか確認
+      if(m) {
+      　//デートスポット配列に（あとあと使う）
+        this.dateSpots.push(m.title);
         let map = (_this as any).$refs.mapRef.$mapObject;
         const center = {lat: _this.maplocation.lat, lng: _this.maplocation.lng}
-        const dakota = {lat: m.position.lat(), lng: m.position.lng()};
-        this.DR.setMap(map);
-        const route = {
-          origin: center,
-          destination: dakota,
-          // waypoints: _this.waypoints,
-          waypoints: _this.waypoints,
-          travelMode: 'DRIVING'
+        let destination = {lat: m.position.lat(), lng: m.position.lng()};
+        //クリックしたところがすでに押されてるか確認
+        let trueOrfalse = false
+        for(let i = 0; i < _this.waypoints.length; i++) {
+          let latBoolean = this.waypoints[i].location.lat === destination.lat;
+          let lngBoolean = this.waypoints[i].location.lng === destination.lng;
+          if(latBoolean === true && lngBoolean === true) {
+            trueOrfalse = true
+          }
         }
-console.log('route', route);
-        this.DS.route(route,
-          function(response: any, status: any) {
-            if(status !== 'OK') {
-              window.alert('Directions request failed due to ' + status);
-              return
-            } else {
-              // _this.waypoints.push({location: dakota});
-              _this.DR.setDirections(response);
-              let directionsData = response.routes[0].legs[0];
-            //Get data about the mapped route
-              if(!directionsData) {
-                window.alert('Directions request failed');
-                return;
+        //クリックした場所がwaypointsにあったら別処理
+        if(trueOrfalse) {
+          //waypointsからクリックした場所消し
+          _this.waypoints = _this.waypoints.filter(el => el.location.lat !== destination.lat && el.location.lng !== destination.lng);
+          //filterでwaypointsなくなったらルート消し
+          if(_this.waypoints.length === 0) {
+            this.DR.setMap(null);
+            return
+          }
+          //waypointsの最後の場所を目的地に
+          destination = {lat: _this.waypoints[_this.waypoints.length - 1].location.lat, lng: _this.waypoints[_this.waypoints.length - 1].location.lng}
+          //waypointsからdestination消し
+          _this.waypoints.pop();
+          _this.DR.setMap(map);
+          const route = {
+            origin: center,
+            destination: destination,
+            waypoints: _this.waypoints,
+            travelMode: 'DRIVING'
+          }
+          _this.DS.route(route,
+            function(response: any, status: any) {
+              if(status !== 'OK') {
+                window.alert('Directions request failed due to ' + status);
+                return
               } else {
-  console.log(directionsData);
-                _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
+                _this.waypoints.push({location: destination});
+                _this.DR.setDirections(response);
+                let directionsData = response.routes[0].legs[0];
+                if(!directionsData) {
+                  window.alert('Directions request failed');
+                  return;
+                } else {
+                  _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
+                }
               }
             }
+          );
+          return
+        } else {
+          _this.DR.setMap(map);
+          const route = {
+            origin: center,
+            destination: destination,
+            waypoints: _this.waypoints,
+            travelMode: 'DRIVING'
           }
-        );
+          _this.DS.route(route,
+            function(response: any, status: any) {
+              if(status !== 'OK') {
+                window.alert('Directions request failed due to ' + status);
+                return
+              } else {
+                _this.waypoints.push({location: destination});
+                _this.DR.setDirections(response);
+                let directionsData = response.routes[0].legs[0];
+                if(!directionsData) {
+                  window.alert('Directions request failed');
+                  return;
+                } else {
+                  _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
+                }
+              }
+            }
+          );
+          return
+        }
+//         this.DR.setMap(map);
+//         const route = {
+//           origin: center,
+//           destination: dakota,
+//           // waypoints: _this.waypoints,
+//           waypoints: _this.waypoints,
+//           travelMode: 'DRIVING'
+//         }
+// console.log('route', route);
+//         this.DS.route(route,
+//           function(response, status) {
+//             if(status !== 'OK') {
+//               window.alert('Directions request failed due to ' + status);
+//               return
+//             } else {
+//               // _this.waypoints.push({location: dakota});
+//               _this.DR.setDirections(response);
+//               let directionsData = response.routes[0].legs[0];
+//             //Get data about the mapped route
+//               if(!directionsData) {
+//                 window.alert('Directions request failed');
+//                 return;
+//               } else {
+//   console.log(directionsData);
+//                 _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
+//               }
+//             }
+//           }
+//         );
+      } else {
+        console.log('値取れてないよ～')
       }
     },
     mapClick ($event: any) {
@@ -398,6 +498,9 @@ console.log('route', route);
         this.DR = null;
       }
       // this.getZahyo();
+    },
+    deleteOutOfCirclePin() {
+      let center = ''
     }
   }
 })
