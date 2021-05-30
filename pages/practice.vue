@@ -60,7 +60,7 @@
         v-bind:key="marker.id"
         :position="marker.position"
         :clickable="true"
-        :draggable="true"
+        :draggable="false"
         @click="onClickMarker(index, marker)"
       />
     </GmapMap>
@@ -117,7 +117,8 @@ interface Data {
   keyword: string,
   DS: any,
   DR: any,
-  waypoints: {location: {lat: void, lng: void}}[]
+  waypoints: {location: {lat: void, lng: void}}[],
+  circleInstance: {}
 }
 
 export default Vue.extend({
@@ -169,7 +170,9 @@ export default Vue.extend({
       keyword: '',
       DS: '',
       DR: '',
-      waypoints: []
+      waypoints: [],
+      circleInstance: {},
+      
     }
   },
   created() {
@@ -180,7 +183,7 @@ export default Vue.extend({
       // let _this = this
       navigator.geolocation.getCurrentPosition(
         function(this: any, position :any) {
-console.log('position', position)
+          console.log('position', position);
           let coords = position.coords;
           //経度緯度を取得
           this.maplocation.lat = coords.latitude;
@@ -193,14 +196,14 @@ console.log('position', position)
           })
         }.bind(this),
         function(this:any, error: any) {
-console.log('error', error);
+          console.log('error', error);
           //エラーの場合は東京駅周辺に移動
           this.maplocation.lat = 35.6813092;
           this.maplocation.lng = 139.7677269;
         }.bind(this)
       );
     } else {
-console.log('???')
+      console.log('???')
       //現在地取得負荷の場合は東京駅周辺に移動
       this.maplocation.lat = 35.6813092;
       this.maplocation.lng = 139.7677269;
@@ -208,7 +211,7 @@ console.log('???')
   },
   methods: {
     closeFnc() {
-console.log('hogehoge')
+      console.log('hogehoge');
     },
     setPlaceMakers() {
       let map = (this as any).$refs.mapRef.$mapObject;
@@ -217,6 +220,7 @@ console.log('hogehoge')
       this.DS = new google.maps.DirectionsService();
       this.DR = new google.maps.DirectionsRenderer();
       //Places APIのnearbySearchを使用する
+      console.log(`hamada lat,lng => ${this.maplocation.lat},${this.maplocation.lng}`)
       placeService.nearbySearch(
         {
           location: new google.maps.LatLng(this.maplocation.lat, this.maplocation.lng),
@@ -225,10 +229,10 @@ console.log('hogehoge')
           keyword: ''
         },
         function(this: any, results: any, status: any) {
-console.log('Status', google.maps.places.PlacesServiceStatus);
+          console.log('Status', google.maps.places.PlacesServiceStatus);
           if(status === google.maps.places.PlacesServiceStatus.OK) {
             console.log('this', this)
-console.log('results', results);
+            console.log('results', results);
             results.forEach((place: any) => {
               // デフォルトのアイコンが大きめなので縮小
               let icon = {
@@ -252,34 +256,35 @@ console.log('results', results);
     },
     getZahyo() {
       let geocoder = new google.maps.Geocoder();
-      let _this = this;
+      // let _this = this;
       geocoder.geocode({'address': this.destination, 'language': 'ja'}, function(this: any, results: any, status: any) {
         if(status === google.maps.GeocoderStatus.OK) {
           let latLngArr = results[0].geometry.location.toUrlValue();
           let Arrayltlg = latLngArr.split(",");
-          _this.lat = Number(Arrayltlg[0]);
-          _this.lng = Number(Arrayltlg[1]);
+          this.lat = Number(Arrayltlg[0]);
+          this.lng = Number(Arrayltlg[1]);
           var opts = {
               center: new google.maps.LatLng(Arrayltlg[0], Arrayltlg[1]),
               zoom: 13
           };
           // let map = new google.maps.Map(document.getElementById("map"), opts);
-          _this.maplocation.lat = _this.lat;
-          _this.maplocation.lng = _this.lng;
-          let maps = (_this as any).$refs.mapRef.$mapObject;
+          this.maplocation.lat = this.lat;
+          this.maplocation.lng = this.lng;
+          let maps = (this as any).$refs.mapRef.$mapObject;
 
           let placeService = new google.maps.places.PlacesService(maps);
+          console.log(`hamada lat,lng => ${this.lat},${this.lng}`)
           placeService.nearbySearch(
             {
-              location: new google.maps.LatLng(_this.lat, _this.lng),
-              radius: '1000',
+              location: new google.maps.LatLng(this.lat, this.lng),
+              radius: '550', // TODO radius:'1000'に設定すると想定する距離(半径1000m)よりも広い距離を対象に検索してしまう課題が未解決。'550'にすると想定する半径1000mに近しくなるので暫定的に対応。調べたけど不明。
               type: ['restaurant'],
-              keyword: _this.keyword
+              keyword: this.keyword
             },
             function(this: any, results: any, status: any) {
               if(status == google.maps.places.PlacesServiceStatus.OK) {
+                this.markers = []; // 複数回検索した時に、前回のピンを削除する
                 results.forEach((place: any) => {
-                  // デフォルトのアイコンが大きめなので縮小
                   let icon = {
                     url: place.icon, // url
                     scaledSize: new google.maps.Size(30, 30), // scaled size
@@ -292,15 +297,15 @@ console.log('results', results);
                     id: place.place_id,
                     title: place.name
                   };
-                  _this.markers.push(maker);
-                  console.log('markers', _this.markers);
+                  this.markers.push(maker);
+                  // console.log('markers', this.markers);
                 });
-                _this.setCircle();
+                this.setCircle();
               }
-            }.bind(_this)
+            }.bind(this)
           )
         }
-      }.bind(_this)
+      }.bind(this)
       );
     },
     pushArea() {
@@ -344,25 +349,25 @@ console.log('results', results);
               window.alert('Directions request failed');
               return;
             } else {
-console.log(directionsData);
+              console.log(directionsData);
               _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
             }
           }
         }
       );
     },
-    setCircle() {
+    setCircle(): void {
       let map = (this as any).$refs.mapRef.$mapObject;
       new google.maps.Circle({
-        center: {lat: this.maplocation.lat, lng: this.maplocation.lng},
-        fillColor: '#CCFFFF',
-        fillOpacity: 0.5,
-        map: map,
-        radius: 1000,
-        strokeColor: '#00FFFF',
-        strokeOpacity: 1,
-        strokeWeight: 1
-      })
+        center: {lat: this.maplocation.lat, lng: this.maplocation.lng},// 中心点(google.maps.LatLng)
+        fillColor: '#CCFFFF', // 塗りつぶし色
+        fillOpacity: 0.5,// 塗りつぶし透過度（0: 透明 ⇔ 1:不透明）
+        map: map,// 表示させる地図（google.maps.Map）
+        radius: 1000,// 半径（ｍ）
+        strokeColor: '#00FFFF',// 外周色
+        strokeOpacity: 1, // 外周透過度（0: 透明 ⇔ 1:不透明）
+        strokeWeight: 1// 外周太さ（ピクセル）
+      });
     },
     onClickMarker(index: number, m: {title: string, position: {lat: () => void, lng: () => void}}): void {
       let _this = this
@@ -460,7 +465,7 @@ console.log(directionsData);
 //           waypoints: _this.waypoints,
 //           travelMode: 'DRIVING'
 //         }
-// console.log('route', route);
+//         console.log('route', route);
 //         this.DS.route(route,
 //           function(response, status) {
 //             if(status !== 'OK') {
@@ -475,7 +480,7 @@ console.log(directionsData);
 //                 window.alert('Directions request failed');
 //                 return;
 //               } else {
-//   console.log(directionsData);
+//                 console.log(directionsData);
 //                 _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
 //               }
 //             }
