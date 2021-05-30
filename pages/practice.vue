@@ -72,12 +72,63 @@
       デートスポット
       {{ dateSpots }}
     </div>
+    <!-- vuetify ポップアップ -->
+      <v-app id="inspire">
+        <div class="text-center">
+          <v-dialog
+            v-model="dialog"
+            width="500"
+          >
+            <v-card>
+              <v-card-title class="headline grey lighten-2">
+                詳細情報
+              </v-card-title>
+      
+              <v-card-text>{{selectedPlace.title}}</v-card-text>
+              <v-img
+                v-if="selectedPlace.photo"
+                :lazy-src="selectedPlace.photo"
+                max-height="300"
+                max-width="422"
+                :src="selectedPlace.photo"
+              ></v-img>
+              <v-card-text v-if="!selectedPlace.photo">画像はありません</v-card-text>
+              
+              <v-divider></v-divider>
+      
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn
+                  color="error"
+                  text
+                  @click="addDateSpots({
+                    id: selectedPlace.id,
+                    title: selectedPlace.title,
+                  })"
+                >
+                  デートに追加する
+                </v-btn>
+                <v-btn
+                  color="primary"
+                  text
+                  @click="dialog = false"
+                >
+                  閉じる
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+        </div>
+      </v-app>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
 declare let google: any;
+
+document.addEventListener('touchstart', function() {}, {passive: true});
+
 
 interface Data {
   maplocation: {lng: number, lat: number}
@@ -107,7 +158,7 @@ interface Data {
   searchKeyword: string
   placesList: string[]
   map: any
-  dateSpots: string[],
+  dateSpots: {id:string, title:string}[],
   lat: any,
   lng: any,
   balloon: {position: number},
@@ -118,7 +169,9 @@ interface Data {
   DS: any,
   DR: any,
   waypoints: {location: {lat: void, lng: void}}[],
-  circleInstance: {}
+  circleInstance: {},
+  dialog: boolean,
+  selectedPlace:{id: string, title: string, photo: string}
 }
 
 export default Vue.extend({
@@ -172,7 +225,11 @@ export default Vue.extend({
       DR: '',
       waypoints: [],
       circleInstance: {},
-      
+      dialog:false,
+      selectedPlace:{
+        id: '', title: '', photo: ''
+        },
+      //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
     }
   },
   created() {
@@ -233,6 +290,8 @@ export default Vue.extend({
           if(status === google.maps.places.PlacesServiceStatus.OK) {
             console.log('this', this)
             console.log('results', results);
+            console.log('hamada photo', results[0].photos[0].getUrl({maxWidth: 640}));
+            
             results.forEach((place: any) => {
               // デフォルトのアイコンが大きめなので縮小
               let icon = {
@@ -245,7 +304,8 @@ export default Vue.extend({
                 position: place.geometry.location,
                 icon: icon,
                 id: place.place_id,
-                title: place.name
+                title: place.name,
+                photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : ''
               };
               this.markers.push(maker);
             });
@@ -284,6 +344,7 @@ export default Vue.extend({
             function(this: any, results: any, status: any) {
               if(status == google.maps.places.PlacesServiceStatus.OK) {
                 this.markers = []; // 複数回検索した時に、前回のピンを削除する
+                console.log('getZahyou result', results);
                 results.forEach((place: any) => {
                   let icon = {
                     url: place.icon, // url
@@ -291,11 +352,19 @@ export default Vue.extend({
                     origin: new google.maps.Point(0,0), // origin
                     anchor: new google.maps.Point(0, 0) // anchor
                   };
+                  
+                  // let tmpPhotoArray;
+                  // place.photos.forEach((photo: { getUrl: ({}) => string}) => {
+                  //   tmpPhotoArray.push(photo.getUrl({maxWidth: 640}));
+                  // });
+                  
+                  
                   let maker = {
                     position: place.geometry.location,
                     icon: icon,
                     id: place.place_id,
-                    title: place.name
+                    title: place.name,
+                    photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : ''
                   };
                   this.markers.push(maker);
                   // console.log('markers', this.markers);
@@ -307,10 +376,6 @@ export default Vue.extend({
         }
       }.bind(this)
       );
-    },
-    pushArea() {
-      let area = {id: 8, title: 'hoge4', position: {lat: 35.67, lng: 139.39}}
-      this.markers.push(area);
     },
     initMap() {
       // this.DS = new google.maps.DirectionsService();
@@ -369,15 +434,18 @@ export default Vue.extend({
         strokeWeight: 1// 外周太さ（ピクセル）
       });
     },
-    onClickMarker(index: number, m: {title: string, position: {lat: () => void, lng: () => void}}): void {
+    onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => void, lng: () => void}, photo: string}): void {
       let _this = this
+      this.dialog = true;
       if(this.DR === null) {
         this.DR = new google.maps.DirectionsRenderer();
       }
       //m取れてるか確認
       if(m) {
-      　//デートスポット配列に（あとあと使う）
-        this.dateSpots.push(m.title);
+        this.selectedPlace.id = m.id;
+        this.selectedPlace.title = m.title;
+        this.selectedPlace.photo = m.photo;
+      　
         let map = (_this as any).$refs.mapRef.$mapObject;
         const center = {lat: _this.maplocation.lat, lng: _this.maplocation.lng}
         let destination = {lat: m.position.lat(), lng: m.position.lng()};
@@ -506,7 +574,95 @@ export default Vue.extend({
     },
     deleteOutOfCirclePin() {
       let center = ''
+    },
+    addDateSpots(data : {id: string, title: string}) {
+      this.dateSpots.push({
+        id: data.id,
+        title: data.title
+      })
+      alert("デートに追加しました。")
+      this.dialog = false;
+
     }
   }
 })
 </script>
+
+<style lang="scss">
+.modal_wrap input{
+  display: none;
+}
+
+.modal_overlay{
+  display: flex;
+  justify-content: center;
+  overflow: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  opacity: 0;
+  transition: opacity 0.5s, transform 0s 0.5s;
+  transform: scale(0);
+}
+
+.modal_trigger{
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.modal_content{
+  align-self: center;
+  width: 60%;
+  max-width: 800px;
+  padding: 30px 30px 15px;
+  box-sizing: border-box;
+  background: #fff;
+  line-height: 1.4em;
+  transform: scale(0.3);
+  transition: 0.5s;
+}
+
+.close_button{
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.modal_wrap input:checked ~ .modal_overlay{
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.5s;
+}
+
+.modal_wrap input:checked ~ .modal_overlay .modal_content{
+  transform: scale(1);
+}
+
+.open_button{
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 200px;
+  height: 30px;
+  margin: auto;
+  padding: 8px 16px;
+  color: #444;
+  font-weight: bold;
+  font-family: 'Montserrat', sans-serif;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  border-radius: 16px;
+  cursor: pointer;
+}
+</style>
