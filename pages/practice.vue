@@ -62,6 +62,12 @@
         :clickable="true"
         :draggable="false"
         @click="onClickMarker(index, marker)"
+        :icon="{
+          url: marker.icon.url,
+          origin: marker.icon.origin,
+          anchor: marker.icon.anchor,
+          scaledSize: marker.icon.scaledSize
+        }"
       />
     </GmapMap>
     <div>
@@ -138,7 +144,16 @@ interface Data {
     streetViewControl: boolean
     styles: string[]
   }
-  markers: {id: number | string, title: string, position: {lat: number, lng: number}}[]
+  markers: {
+    id: number | string,
+    title: string,
+    position: {
+      lat: () => number,
+      lng: () => number
+    },
+    icon: {url: string},
+    destination: boolean
+  }[]
   markersSub: []
   infoOptions: {
     // minWidth: number,
@@ -168,10 +183,11 @@ interface Data {
   keyword: string,
   DS: any,
   DR: any,
-  waypoints: {location: {lat: void, lng: void}}[],
+  waypoints: {location: {lat: number, lng: number}}[],
   circleInstance: {},
   dialog: boolean,
-  selectedPlace:{id: string, title: string, photo: string}
+  selectedPlace:{id: string, title: string, photo: string},
+  iconArray: string[]
 }
 
 export default Vue.extend({
@@ -187,11 +203,7 @@ export default Vue.extend({
         streetViewControl: false,
         styles: []
       },
-      markers: [
-        {id: 'hoge', title: 'hoge1', position: {lat: 35.7, lng: 139.42}},
-        {id: 2, title: 'hoge2', position: {lat: 35.69, lng: 139.41}},
-        {id: 3, title: 'hoge3', position: {lat: 35.68, lng: 139.40}},
-      ],
+      markers: [],
       markersSub: [],
       infoOptions: {
         // minWidth: 200,
@@ -230,6 +242,18 @@ export default Vue.extend({
         id: '', title: '', photo: ''
         },
       //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
+      iconArray: [
+        'http://maps.google.com/mapfiles/kml/pal3/icon0.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon1.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon2.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon3.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon4.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon5.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon6.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon7.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon8.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon9.png'
+      ]
     }
   },
   created() {
@@ -248,7 +272,7 @@ export default Vue.extend({
           //地図読み込み完了時のイベント
           this.$gmapApiPromiseLazy().then(() => {
             google.maps.event.addListenerOnce(this.$refs.mapRef.$mapObject, 'idle',
-            function(this: any) { this.setPlaceMakers()}.bind(this)
+            function(this: any) { this.setPlaceMarkers()}.bind(this)
           );
           })
         }.bind(this),
@@ -270,7 +294,7 @@ export default Vue.extend({
     closeFnc() {
       console.log('hogehoge');
     },
-    setPlaceMakers() {
+    setPlaceMarkers() {
       let map = (this as any).$refs.mapRef.$mapObject;
       let placeService = new google.maps.places.PlacesService(map);
       let _this = this;
@@ -305,7 +329,8 @@ export default Vue.extend({
                 icon: icon,
                 id: place.place_id,
                 title: place.name,
-                photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : ''
+                photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
+                destination: false
               };
               this.markers.push(maker);
             });
@@ -316,7 +341,7 @@ export default Vue.extend({
     },
     getZahyo() {
       let geocoder = new google.maps.Geocoder();
-      // let _this = this;
+      let _this = this;
       geocoder.geocode({'address': this.destination, 'language': 'ja'}, function(this: any, results: any, status: any) {
         if(status === google.maps.GeocoderStatus.OK) {
           let latLngArr = results[0].geometry.location.toUrlValue();
@@ -339,11 +364,10 @@ export default Vue.extend({
               location: new google.maps.LatLng(this.lat, this.lng),
               radius: '550', // TODO radius:'1000'に設定すると想定する距離(半径1000m)よりも広い距離を対象に検索してしまう課題が未解決。'550'にすると想定する半径1000mに近しくなるので暫定的に対応。調べたけど不明。
               type: ['restaurant'],
-              keyword: this.keyword
+              keyword: _this.keyword
             },
             function(this: any, results: any, status: any) {
               if(status == google.maps.places.PlacesServiceStatus.OK) {
-                this.markers = []; // 複数回検索した時に、前回のピンを削除する
                 console.log('getZahyou result', results);
                 results.forEach((place: any) => {
                   let icon = {
@@ -364,7 +388,8 @@ export default Vue.extend({
                     icon: icon,
                     id: place.place_id,
                     title: place.name,
-                    photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : ''
+                    photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
+                    destination: false
                   };
                   this.markers.push(maker);
                   // console.log('markers', this.markers);
@@ -434,7 +459,7 @@ export default Vue.extend({
         strokeWeight: 1// 外周太さ（ピクセル）
       });
     },
-    onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => void, lng: () => void}, photo: string}): void {
+    onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => number, lng: () => number}, photo: string}): void {
       let _this = this
       this.dialog = true;
       if(this.DR === null) {
@@ -512,6 +537,15 @@ export default Vue.extend({
                 return
               } else {
                 _this.waypoints.push({location: destination});
+                _this.markers = _this.markers.filter(function(marker) {
+                  let latBoolean = marker.position.lat() === destination.lat
+                  let lngBoolean = marker.position.lng() === destination.lng
+                  return (latBoolean === true && lngBoolean === true) || marker.destination === true;
+                })
+                for(let i = 0; i < _this.markers.length; i++) {
+                  _this.markers[i].destination = true
+                  _this.markers[i].icon.url = _this.iconArray[i];
+                }
                 _this.DR.setDirections(response);
                 let directionsData = response.routes[0].legs[0];
                 if(!directionsData) {
