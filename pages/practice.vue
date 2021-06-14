@@ -44,16 +44,8 @@
       id="map"
       @click="mapClick"
     >
-      <GmapInfoWindow
-        :position="infoWindowPos"
-        :opened="infoWinOpen"
-        @closeclick="infoWinOpen = false"
-      >
+      <GmapInfoWindow>
         <p>hoge</p>
-        <!-- <p style ="color: #000">
-          {{ marker.title }}
-          hogehoge
-        </p> -->
       </GmapInfoWindow>
       <GmapMarker
         v-for="(marker, index) in markers"
@@ -79,7 +71,7 @@
       {{ dateSpots }}
     </div>
     <!-- vuetify ポップアップ -->
-      <v-app id="inspire">
+      <!-- <v-app id="inspire">
         <div class="text-center">
           <v-dialog
             v-model="dialog"
@@ -125,7 +117,7 @@
             </v-card>
           </v-dialog>
         </div>
-      </v-app>
+      </v-app> -->
   </div>
 </template>
 
