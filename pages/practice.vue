@@ -85,14 +85,29 @@
               </v-card-title>
       
               <v-card-text>{{selectedPlace.title}}</v-card-text>
+              <span>値段:</span>
+              <span v-if="selectedPlace.priceLevel == undefined">不明</span>
+              <v-icon v-for="n in selectedPlace.priceLevel" :key="n">mdi-currency-jpy</v-icon>
+              <!-- <v-icon>mdi-currency-jpy</v-icon> -->
+              <p>評価:{{selectedPlace.rating}}</p>
+              <span v-if="selectedPlace.rating == undefined">不明</span>
+              
+              <!-- TODO v-modelで制御されているコンポーネント中のカルーセルが効かないのでteratailで質問中。笑  -->
+              <!-- <v-carousel>
+                <v-carousel-item
+                  v-for="(item,i) in items"
+                  :key="i"
+                  :src="item.src"
+                ></v-carousel-item>
+              </v-carousel> -->
               <v-img
-                v-if="selectedPlace.photo"
-                :lazy-src="selectedPlace.photo"
+                v-if="selectedPlace.photos[0]"
+                :lazy-src="selectedPlace.photos[0]"
                 max-height="300"
                 max-width="422"
-                :src="selectedPlace.photo"
+                :src="selectedPlace.photos[0]"
               ></v-img>
-              <v-card-text v-if="!selectedPlace.photo">画像はありません</v-card-text>
+              <v-card-text v-if="!selectedPlace.photos[0]">画像はありません</v-card-text>
               
               <v-divider></v-divider>
       
@@ -171,7 +186,7 @@ interface Data {
   waypoints: {location: {lat: void, lng: void}}[],
   circleInstance: {},
   dialog: boolean,
-  selectedPlace:{id: string, title: string, photo: string}
+  selectedPlace:{id: string, title: string, photos: string[], priceLevel: number, rating: number},
 }
 
 export default Vue.extend({
@@ -227,9 +242,8 @@ export default Vue.extend({
       circleInstance: {},
       dialog:false,
       selectedPlace:{
-        id: '', title: '', photo: ''
+        id: '', title: '', photos: [], priceLevel: 0, rating: 0
         },
-      //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
     }
   },
   created() {
@@ -277,7 +291,6 @@ export default Vue.extend({
       this.DS = new google.maps.DirectionsService();
       this.DR = new google.maps.DirectionsRenderer();
       //Places APIのnearbySearchを使用する
-      console.log(`hamada lat,lng => ${this.maplocation.lat},${this.maplocation.lng}`)
       placeService.nearbySearch(
         {
           location: new google.maps.LatLng(this.maplocation.lat, this.maplocation.lng),
@@ -288,9 +301,6 @@ export default Vue.extend({
         function(this: any, results: any, status: any) {
           console.log('Status', google.maps.places.PlacesServiceStatus);
           if(status === google.maps.places.PlacesServiceStatus.OK) {
-            console.log('this', this)
-            console.log('results', results);
-            console.log('hamada photo', results[0].photos[0].getUrl({maxWidth: 640}));
             
             results.forEach((place: any) => {
               // デフォルトのアイコンが大きめなので縮小
@@ -300,12 +310,26 @@ export default Vue.extend({
                 origin: new google.maps.Point(0,0), // origin
                 anchor: new google.maps.Point(0, 0) // anchor
               };
+              
+              // デートスポットの写真用
+              let tmpPhotosArray: string[] = new Array();
+              if ("photos" in place) {
+                place.photos.forEach( (photo:any) => {
+                  tmpPhotosArray.push(photo.getUrl({maxWidth: 640}));
+                });
+              }
+              else {
+                tmpPhotosArray.push('');
+              }
+                  
               let maker = {
                 position: place.geometry.location,
                 icon: icon,
                 id: place.place_id,
                 title: place.name,
-                photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : ''
+                photos: tmpPhotosArray,
+                priceLevel: place.price_level,
+                rating: place.rating
               };
               this.markers.push(maker);
             });
@@ -333,7 +357,6 @@ export default Vue.extend({
           let maps = (this as any).$refs.mapRef.$mapObject;
 
           let placeService = new google.maps.places.PlacesService(maps);
-          console.log(`hamada lat,lng => ${this.lat},${this.lng}`)
           placeService.nearbySearch(
             {
               location: new google.maps.LatLng(this.lat, this.lng),
@@ -353,10 +376,15 @@ export default Vue.extend({
                     anchor: new google.maps.Point(0, 0) // anchor
                   };
                   
-                  // let tmpPhotoArray;
-                  // place.photos.forEach((photo: { getUrl: ({}) => string}) => {
-                  //   tmpPhotoArray.push(photo.getUrl({maxWidth: 640}));
-                  // });
+                  let tmpPhotosArray: string[] = new Array();
+                  if ("photos" in place) {
+                    place.photos.forEach( (photo:any) => {
+                      tmpPhotosArray.push(photo.getUrl({maxWidth: 640}));
+                    });
+                  }
+                  else {
+                    tmpPhotosArray.push('');
+                  }
                   
                   
                   let maker = {
@@ -364,7 +392,9 @@ export default Vue.extend({
                     icon: icon,
                     id: place.place_id,
                     title: place.name,
-                    photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : ''
+                    photos: tmpPhotosArray,
+                    priceLevel: place.price_level,
+                    rating: place.rating
                   };
                   this.markers.push(maker);
                   // console.log('markers', this.markers);
@@ -434,7 +464,7 @@ export default Vue.extend({
         strokeWeight: 1// 外周太さ（ピクセル）
       });
     },
-    onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => void, lng: () => void}, photo: string}): void {
+    onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => void, lng: () => void}, photos: string[], priceLevel: number, rating: number}): void {
       let _this = this
       this.dialog = true;
       if(this.DR === null) {
@@ -444,7 +474,9 @@ export default Vue.extend({
       if(m) {
         this.selectedPlace.id = m.id;
         this.selectedPlace.title = m.title;
-        this.selectedPlace.photo = m.photo;
+        this.selectedPlace.photos = m.photos;
+        this.selectedPlace.priceLevel = m.priceLevel;
+        this.selectedPlace.rating = m.rating;
       　
         let map = (_this as any).$refs.mapRef.$mapObject;
         const center = {lat: _this.maplocation.lat, lng: _this.maplocation.lng}
