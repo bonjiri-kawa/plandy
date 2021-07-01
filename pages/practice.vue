@@ -17,6 +17,9 @@
       </v-col>
     </v-row>
     <div class="pa-1">
+      <v-btn @click="clickDialog">ダイアログ</v-btn>
+    </div>
+    <div class="pa-1">
       <v-btn @click="getZahyo">座標取得</v-btn>
     </div>
     <div class="pa-1">
@@ -71,7 +74,7 @@
       {{ dateSpots }}
     </div>
     <!-- vuetify ポップアップ -->
-      <!-- <v-app id="inspire">
+      <v-app id="inspire" v-show="dialogShow">
         <div class="text-center">
           <v-dialog
             v-model="dialog"
@@ -81,8 +84,29 @@
               <v-card-title class="headline grey lighten-2">
                 詳細情報
               </v-card-title>
-      
-              <v-card-text>{{selectedPlace.title}}</v-card-text>
+              <v-carousel v-model="model">
+                <v-carousel-item
+                  v-for="(color, i) in colors"
+                  :key="color"
+                >
+                  <v-sheet
+                    :color="color"
+                    height="100%"
+                    tile
+                  >
+                    <v-row
+                      class="fill-height"
+                      align="center"
+                      justify="center"
+                    >
+                      <div class="text-h2">
+                        Slide {{i + 1}}
+                      </div>
+                    </v-row>
+                  </v-sheet>
+                </v-carousel-item>
+              </v-carousel>
+              <!-- <v-card-text>{{selectedPlace.title}}</v-card-text>
               <v-img
                 v-if="selectedPlace.photo"
                 :lazy-src="selectedPlace.photo"
@@ -113,11 +137,11 @@
                 >
                   閉じる
                 </v-btn>
-              </v-card-actions>
+              </v-card-actions> -->
             </v-card>
           </v-dialog>
         </div>
-      </v-app> -->
+      </v-app>
   </div>
 </template>
 
@@ -179,7 +203,11 @@ interface Data {
   circleInstance: {},
   dialog: boolean,
   selectedPlace:{id: string, title: string, photo: string},
-  iconArray: string[]
+  iconArray: string[],
+  iconNum: number,
+  model: number,
+  colors: string[],
+  dialogShow: boolean
 }
 
 export default Vue.extend({
@@ -229,7 +257,7 @@ export default Vue.extend({
       DR: '',
       waypoints: [],
       circleInstance: {},
-      dialog:false,
+      dialog: true,
       selectedPlace:{
         id: '', title: '', photo: ''
         },
@@ -245,13 +273,41 @@ export default Vue.extend({
         'http://maps.google.com/mapfiles/kml/pal3/icon7.png',
         'http://maps.google.com/mapfiles/kml/pal3/icon8.png',
         'http://maps.google.com/mapfiles/kml/pal3/icon9.png'
-      ]
+      ],
+      iconNum: 0,
+      model: 0,
+      colors: [
+        'primary',
+        'secondary',
+        'yellow darken-2',
+        'red',
+        'orange',
+      ],
+      dialogShow: false
     }
   },
-  created() {
-    // document.addEventListener('touchstart', function() {}, {passive: true});
+  async created() {
   },
-  mounted() {
+  async mounted() {
+    // let localMapMarkers = localStorage.getItem('mapMarkers');
+    // let localRoute = localStorage.getItem('route'); 
+    // let _this = this;
+    // let respond = new Promise(function() {
+    //   console.log('Promise1')
+    //   if(localMapMarkers && localRoute) {
+    //     console.log('Promise')
+    //     localMapMarkers = JSON.parse(localMapMarkers);
+    //     localRoute = JSON.parse(localRoute);
+    //     let map = (_this as any).$refs.mapRef.$mapObject;
+    //     _this.DS = new google.maps.DirectionsService();
+    //     _this.DR = new google.maps.DirectionsRenderer();
+    //     _this.DR.setMap(map);
+    //   }
+    // })
+  let iconNumLocal = localStorage.getItem('iconNum')
+  if(iconNumLocal) {
+    this.iconNum = JSON.parse(iconNumLocal);
+  };
     if(navigator.geolocation) {
       // let _this = this
       navigator.geolocation.getCurrentPosition(
@@ -261,11 +317,12 @@ export default Vue.extend({
           //経度緯度を取得
           this.maplocation.lat = coords.latitude;
           this.maplocation.lng = coords.longitude;
+console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           //地図読み込み完了時のイベント
           this.$gmapApiPromiseLazy().then(() => {
             google.maps.event.addListenerOnce(this.$refs.mapRef.$mapObject, 'idle',
-            function(this: any) { this.setPlaceMarkers()}.bind(this)
-          );
+              function(this: any) { this.setPlaceMarkers()}.bind(this)
+            );
           })
         }.bind(this),
         function(this:any, error: any) {
@@ -283,8 +340,9 @@ export default Vue.extend({
     }
   },
   methods: {
-    closeFnc() {
-      console.log('hogehoge');
+    clickDialog() {
+      console.log(this.dialog);
+      this.dialog = !this.dialog;
     },
     setPlaceMarkers() {
       let map = (this as any).$refs.mapRef.$mapObject;
@@ -292,44 +350,71 @@ export default Vue.extend({
       let _this = this;
       this.DS = new google.maps.DirectionsService();
       this.DR = new google.maps.DirectionsRenderer();
-      //Places APIのnearbySearchを使用する
-      console.log(`hamada lat,lng => ${this.maplocation.lat},${this.maplocation.lng}`)
-      placeService.nearbySearch(
-        {
-          location: new google.maps.LatLng(this.maplocation.lat, this.maplocation.lng),
-          radius: '1000',
-          type: ['restaurant'],
-          keyword: ''
-        },
-        function(this: any, results: any, status: any) {
-          console.log('Status', google.maps.places.PlacesServiceStatus);
-          if(status === google.maps.places.PlacesServiceStatus.OK) {
-            console.log('this', this)
-            console.log('results', results);
-            console.log('hamada photo', results[0].photos[0].getUrl({maxWidth: 640}));
-            
-            results.forEach((place: any) => {
-              // デフォルトのアイコンが大きめなので縮小
-              let icon = {
-                url: place.icon, // url
-                scaledSize: new google.maps.Size(30, 30), // scaled size
-                origin: new google.maps.Point(0,0), // origin
-                anchor: new google.maps.Point(0, 0) // anchor
-              };
-              let maker = {
-                position: place.geometry.location,
-                icon: icon,
-                id: place.place_id,
-                title: place.name,
-                photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
-                destination: false
-              };
-              this.markers.push(maker);
-            });
-            _this.setCircle();
+      let localMapMarkersLocal = localStorage.getItem('mapMarkers');
+      let localRoute = localStorage.getItem('route'); 
+      if(localMapMarkersLocal && localRoute) {
+        console.log('Promise')
+        let localMapMarkers: {
+          id: number | string,
+          title: string,
+          position: {
+            lat: () => number,
+            lng: () => number
+          },
+          icon: {url: string},
+          destination: boolean
+        }[] = JSON.parse(localMapMarkersLocal);
+        localRoute = JSON.parse(localRoute);
+        let map = (_this as any).$refs.mapRef.$mapObject;
+        this.DR.setMap(map);
+        this.DS.route(localRoute, function(response: any, status: any){
+          if(status !== 'OK') {
+            window.alert('Directions request failed due to ' + status);
+            return
+          } else {
+            _this.DR.setDirections(response);
           }
-        }.bind(this)
-      );
+        });
+        _this.markers = localMapMarkers;
+      } else {
+        //Places APIのnearbySearchを使用する
+        placeService.nearbySearch(
+          {
+            location: new google.maps.LatLng(this.maplocation.lat, this.maplocation.lng),
+            radius: '1000',
+            type: ['restaurant'],
+            keyword: ''
+          },
+          function(this: any, results: any, status: any) {
+            console.log('Status', google.maps.places.PlacesServiceStatus);
+            if(status === google.maps.places.PlacesServiceStatus.OK) {
+              console.log('this', this)
+              console.log('results', results);
+              console.log('hamada photo', results[0].photos[0].getUrl({maxWidth: 640}));
+              
+              results.forEach((place: any) => {
+                // デフォルトのアイコンが大きめなので縮小
+                let icon = {
+                  url: place.icon, // url
+                  scaledSize: new google.maps.Size(30, 30), // scaled size
+                  origin: new google.maps.Point(0,0), // origin
+                  anchor: new google.maps.Point(0, 0) // anchor
+                };
+                let maker = {
+                  position: place.geometry.location,
+                  icon: icon,
+                  id: place.place_id,
+                  title: place.name,
+                  photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
+                  destination: false,
+                };
+                this.markers.push(maker);
+              });
+              _this.setCircle();
+            }
+          }.bind(this)
+        );
+      }
     },
     getZahyo() {
       let geocoder = new google.maps.Geocoder();
@@ -340,17 +425,16 @@ export default Vue.extend({
           let Arrayltlg = latLngArr.split(",");
           this.lat = Number(Arrayltlg[0]);
           this.lng = Number(Arrayltlg[1]);
-          var opts = {
-              center: new google.maps.LatLng(Arrayltlg[0], Arrayltlg[1]),
-              zoom: 13
-          };
+          // var opts = {
+          //     center: new google.maps.LatLng(Arrayltlg[0], Arrayltlg[1]),
+          //     zoom: 13
+          // };
           // let map = new google.maps.Map(document.getElementById("map"), opts);
           this.maplocation.lat = this.lat;
           this.maplocation.lng = this.lng;
           let maps = (this as any).$refs.mapRef.$mapObject;
 
           let placeService = new google.maps.places.PlacesService(maps);
-          console.log(`hamada lat,lng => ${this.lat},${this.lng}`)
           placeService.nearbySearch(
             {
               location: new google.maps.LatLng(this.lat, this.lng),
@@ -368,13 +452,6 @@ export default Vue.extend({
                     origin: new google.maps.Point(0,0), // origin
                     anchor: new google.maps.Point(0, 0) // anchor
                   };
-                  
-                  // let tmpPhotoArray;
-                  // place.photos.forEach((photo: { getUrl: ({}) => string}) => {
-                  //   tmpPhotoArray.push(photo.getUrl({maxWidth: 640}));
-                  // });
-                  
-                  
                   let maker = {
                     position: place.geometry.location,
                     icon: icon,
@@ -454,6 +531,7 @@ export default Vue.extend({
     onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => number, lng: () => number}, photo: string}): void {
       let _this = this
       this.dialog = true;
+      this.dialogShow = true;
       if(this.DR === null) {
         this.DR = new google.maps.DirectionsRenderer();
       }
@@ -465,7 +543,13 @@ export default Vue.extend({
       　
         let map = (_this as any).$refs.mapRef.$mapObject;
         const center = {lat: _this.maplocation.lat, lng: _this.maplocation.lng}
-        let destination = {lat: m.position.lat(), lng: m.position.lng()};
+        let destination: any;
+        if(typeof m.position.lat === 'function' && typeof m.position.lng === 'function') {
+          console.log('funciton??')
+          destination = {lat: m.position.lat(), lng: m.position.lng()};
+        } else {
+          destination = {lat: m.position.lat, lng: m.position.lng};
+        }
         //クリックしたところがすでに押されてるか確認
         let trueOrfalse = false
         for(let i = 0; i < _this.waypoints.length; i++) {
@@ -522,6 +606,7 @@ export default Vue.extend({
             waypoints: _this.waypoints,
             travelMode: 'DRIVING'
           }
+localStorage.setItem('route', JSON.stringify(route));
           _this.DS.route(route,
             function(response: any, status: any) {
               if(status !== 'OK') {
@@ -529,15 +614,34 @@ export default Vue.extend({
                 return
               } else {
                 _this.waypoints.push({location: destination});
-                _this.markers = _this.markers.filter(function(marker) {
-                  let latBoolean = marker.position.lat() === destination.lat
-                  let lngBoolean = marker.position.lng() === destination.lng
-                  return (latBoolean === true && lngBoolean === true) || marker.destination === true;
-                })
+                // _this.markers = _this.markers.filter(function(marker) {
+                //   let latBoolean = marker.position.lat() === destination.lat
+                //   let lngBoolean = marker.position.lng() === destination.lng
+                //   return (latBoolean === true && lngBoolean === true) || marker.destination === true;
+                // })
+                // for(let i = 0; i < _this.markers.length; i++) {
+                //   _this.markers[i].destination = true;
+                //   _this.markers[i].icon.url = _this.iconArray[i];
+                // }
+                let latBoolean: boolean;
+                let lngBoolean: boolean;
                 for(let i = 0; i < _this.markers.length; i++) {
-                  _this.markers[i].destination = true
-                  _this.markers[i].icon.url = _this.iconArray[i];
+                  if(typeof _this.markers[i].position.lat === 'function' && typeof _this.markers[i].position.lng === 'function') {
+                    latBoolean = _this.markers[i].position.lat() === destination.lat;
+                    lngBoolean = _this.markers[i].position.lng() === destination.lng;
+                    if(latBoolean === true && lngBoolean === true) {
+                      _this.markers[i].icon.url = _this.iconArray[_this.iconNum++];
+                    }
+                  } else {
+                    latBoolean = _this.markers[i].position.lat === destination.lat;
+                    lngBoolean = _this.markers[i].position.lng === destination.lng;
+                    if(latBoolean === true && lngBoolean === true) {
+                      _this.markers[i].icon.url = _this.iconArray[_this.iconNum++];
+                    }
+                  }
                 }
+localStorage.setItem('mapMarkers', JSON.stringify(_this.markers));
+localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
                 _this.DR.setDirections(response);
                 let directionsData = response.routes[0].legs[0];
                 if(!directionsData) {
