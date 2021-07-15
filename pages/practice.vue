@@ -74,7 +74,7 @@
       {{ dateSpots }}
     </div>
     <!-- vuetify ポップアップ -->
-      <v-app id="inspire" v-show="dialogShow">
+      <!-- <v-app id="inspire" v-show="dialogShow">
         <div class="text-center">
           <v-dialog
             v-model="dialog"
@@ -138,10 +138,10 @@
                   閉じる
                 </v-btn>
               </v-card-actions> -->
-            </v-card>
+            <!-- </v-card>
           </v-dialog>
         </div>
-      </v-app>
+      </v-app> -->
   </div>
 </template>
 
@@ -271,8 +271,8 @@ export default Vue.extend({
         'http://maps.google.com/mapfiles/kml/pal3/icon5.png',
         'http://maps.google.com/mapfiles/kml/pal3/icon6.png',
         'http://maps.google.com/mapfiles/kml/pal3/icon7.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon8.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon9.png'
+        'http://maps.google.com/mapfiles/kml/pal3/icon16.png',
+        'http://maps.google.com/mapfiles/kml/pal3/icon17.png',
       ],
       iconNum: 0,
       model: 0,
@@ -364,14 +364,34 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           icon: {url: string},
           destination: boolean
         }[] = JSON.parse(localMapMarkersLocal);
-        localRoute = JSON.parse(localRoute);
+        let localRouteMap: {
+          destination: {
+            lat: number,
+            lng: number
+          },
+          origin: {
+            lat: number,
+            lng: number
+          },
+          travelMode: string,
+          waypoints: {
+            location: {
+              lat: number,
+              lng: number
+            }
+          }[]
+        } = JSON.parse(localRoute);
+        this.waypoints = localRouteMap.waypoints;
         let map = (_this as any).$refs.mapRef.$mapObject;
         this.DR.setMap(map);
-        this.DS.route(localRoute, function(response: any, status: any){
+        this.DS.route(localRouteMap, function(response: any, status: any){
           if(status !== 'OK') {
             window.alert('Directions request failed due to ' + status);
             return
           } else {
+            if(_this.iconNum < 10) {
+              _this.waypoints.push({location: localRouteMap.destination})
+            }
             _this.DR.setDirections(response);
           }
         });
@@ -529,6 +549,10 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
       });
     },
     onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => number, lng: () => number}, photo: string}): void {
+      if(this.iconNum >= 10) {
+        console.log('10個以上はだめ！！')
+        return undefined;
+      } 
       let _this = this
       this.dialog = true;
       this.dialogShow = true;
