@@ -96,10 +96,13 @@
       <div class="container position-relative">
         <div class="row justify-content-center align-items-center">
           <div class="col-xl-6">
-            <!-- <video autoplay loop muted style="box-shadow: 1px 1px 1px 1px #999; border-radius: 10px;">
-              <source src="@/assets/video/kaigo1.webm" type="video/webm" />
-              <source src="@/assets/video/kaigo1.mp4" type="video/mp4" />
-            </video> -->
+            <video autoplay loop muted style="box-shadow: 1px 1px 1px 1px #999; border-radius: 10px;">
+              <!-- chrome用 -->
+              <!-- <source src="~/assets/video/chrome-plandy.webm" type="video/webm" /> -->
+              <!-- <source src="~/assets/video/chrome-plandy.mov" type="video/mov" /> -->
+              <!-- IE,safari用 -->
+              <source src="~/assets/video/safari-plandy.mp4" type="video/mp4" />
+            </video>
           </div>
           <div class="col-xl-6 mt-4">
             <div class="text-center">
