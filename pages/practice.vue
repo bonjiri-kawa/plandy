@@ -85,11 +85,15 @@
             <p class="date-item-one-name">
               {{item.name}}-(No.{{item.no}})
             </p>
-            <div class="date-item-one-border" v-if="index != items.length - 1">
+            <!-- <div class="date-item-one-border" v-if="index != items.length - 1"> -->
+            <div class="date-item-one-border">
               <div class="date-item-under"></div>
             </div>
           </li>
         </draggable>
+        <div class="date-item-end">
+          デート終了
+        </div>
       </v-col>
     </v-row>
     <div>
@@ -914,7 +918,7 @@ li {
     &-one {
       margin-bottom: 40px;
       &-border {
-        border-top: solid #ddd 1px;
+        // border-top: solid #ddd 1px;
         margin-top: 5px;
         position: relative;
       }
@@ -931,6 +935,9 @@ li {
       transform: rotate(-45deg);
       position: absolute;
       margin-left: 45%;
+    }
+    &-end {
+      padding-left: 38%;
     }
     // &-under:last-child {
     //   display: none;
