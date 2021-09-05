@@ -1,5 +1,6 @@
 <template>
   <div>
+    <v-app>
     <v-row>
       <v-col>
         <v-text-field
@@ -16,55 +17,81 @@
         ></v-text-field>
       </v-col>
     </v-row>
-    <div class="pa-1">
-      <v-btn @click="clickDialog">ダイアログ</v-btn>
-    </div>
-    <div class="pa-1">
-      <v-btn @click="getZahyo">座標取得</v-btn>
-    </div>
-    <div class="pa-1">
-      <v-btn @click="initMap">initMap</v-btn>
-    </div>
-    <div class="pa-1">
-      <v-btn @click="setCircle">半径セット</v-btn>
-    </div>
-    <div>
-      <v-btn @click="deleteOutOfCirclePin">範囲外のピン消し</v-btn>
-    </div>
-    <v-col>
-      <v-row justify="end">
-          <v-btn @click="backToBeforeMap">戻る</v-btn>
-      </v-row>
-    </v-col>
-    {{ waypoints }}
-    <GmapMap
-      :center="maplocation"
-      ref="mapRef"
-      map-type-id="roadmap"
-      :zoom="zoom"
-      :style="styleMap"
-      :options="mapOptions"
-      id="map"
-      @click="mapClick"
-    >
-      <GmapInfoWindow>
-        <p>hoge</p>
-      </GmapInfoWindow>
-      <GmapMarker
-        v-for="(marker, index) in markers"
-        v-bind:key="marker.id"
-        :position="marker.position"
-        :clickable="true"
-        :draggable="false"
-        @click="onClickMarker(index, marker)"
-        :icon="{
-          url: marker.icon.url,
-          origin: marker.icon.origin,
-          anchor: marker.icon.anchor,
-          scaledSize: marker.icon.scaledSize
-        }"
-      />
-    </GmapMap>
+    <v-row>
+      <div class="pa-1">
+        <v-btn @click="clickDialog">ダイアログ</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="getZahyo">座標取得</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="initMap">initMap</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="setCircle">半径セット</v-btn>
+      </div>
+      <div>
+        <v-btn @click="deleteOutOfCirclePin">範囲外のピン消し</v-btn>
+      </div>
+      <div>
+        <v-btn @click="backToBeforeMap">戻る</v-btn>
+      </div>
+    </v-row>
+    <v-row>
+      <div>
+        {{ waypoints }}
+      </div>
+      <div>
+        {{ waypointsName }}
+      </div>
+    </v-row>
+    <v-row>
+      <v-col md="9">
+        <GmapMap
+          :center="maplocation"
+          ref="mapRef"
+          map-type-id="roadmap"
+          :zoom="zoom"
+          :style="styleMap"
+          :options="mapOptions"
+          id="map"
+          @click="mapClick"
+        >
+          <GmapInfoWindow>
+            <p>hoge</p>
+          </GmapInfoWindow>
+          <GmapMarker
+            v-for="(marker, index) in markers"
+            v-bind:key="marker.id"
+            :position="marker.position"
+            :clickable="true"
+            :draggable="false"
+            @click="onClickMarker(index, marker)"
+            :icon="{
+              url: marker.icon.url,
+              origin: marker.icon.origin,
+              anchor: marker.icon.anchor,
+              scaledSize: marker.icon.scaledSize
+            }"
+          />
+        </GmapMap>
+      </v-col>
+      <v-col md="3" class="pl-0 pr-3">
+        <div class="mb-4">
+          <h4>デートルート</h4>
+        </div>
+        <draggable tag="ul">
+          <li v-for="item, index in items" :key="item.no" class="date-item-one">
+            <p class="date-item-one-name">
+              {{item.name}}-(No.{{item.no}})
+            </p>
+            <div class="date-item-one-border" v-if="index != items.length - 1">
+              <div class="date-item-under"></div>
+            </div>
+          </li>
+        </draggable>
+      </v-col>
+    </v-row>
     <div>
       距離と時間
       {{directionsMsg}}
@@ -142,14 +169,18 @@
           </v-dialog>
         </div>
       </v-app> -->
+    </v-app>
   </div>
 </template>
 
 <script lang="ts">
 import Vue from 'vue'
 declare let google: any;
+import draggable from 'vuedraggable';
 
 document.addEventListener('touchstart', function() {}, {passive: true});
+
+const defaultIcon = require('../assets/icon/places_21753.png');
 
 
 interface Data {
@@ -203,11 +234,15 @@ interface Data {
   circleInstance: {},
   dialog: boolean,
   selectedPlace:{id: string, title: string, photo: string},
-  iconArray: string[],
+  iconArrayNumber: string[],
+  iconDefault: string,
   iconNum: number,
   model: number,
   colors: string[],
-  dialogShow: boolean
+  dialogShow: boolean,
+  lastDestination: string,
+  waypointsName: string[],
+  items: {}[]
 }
 
 export default Vue.extend({
@@ -262,7 +297,7 @@ export default Vue.extend({
         id: '', title: '', photo: ''
         },
       //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
-      iconArray: [
+      iconArrayNumber: [
         'http://maps.google.com/mapfiles/kml/pal3/icon0.png',
         'http://maps.google.com/mapfiles/kml/pal3/icon1.png',
         'http://maps.google.com/mapfiles/kml/pal3/icon2.png',
@@ -274,6 +309,7 @@ export default Vue.extend({
         'http://maps.google.com/mapfiles/kml/pal3/icon16.png',
         'http://maps.google.com/mapfiles/kml/pal3/icon17.png',
       ],
+      iconDefault: defaultIcon,
       iconNum: 0,
       model: 0,
       colors: [
@@ -283,8 +319,18 @@ export default Vue.extend({
         'red',
         'orange',
       ],
-      dialogShow: false
+      dialogShow: false,
+      lastDestination: '',
+      waypointsName: [],
+      items:[
+        {no:1, name:'キャベツ', categoryNo:'1'},
+        {no:2, name:'ステーキ', categoryNo:'2'},
+        {no:3, name:'リンゴ', categoryNo:'3'}
+      ]
     }
+  },
+  components: {
+    draggable
   },
   async created() {
   },
@@ -304,7 +350,11 @@ export default Vue.extend({
     //     _this.DR.setMap(map);
     //   }
     // })
-  let iconNumLocal = localStorage.getItem('iconNum')
+  let lastDestination = localStorage.getItem('lastDestination');
+  if(lastDestination) {
+    this.lastDestination = JSON.parse(lastDestination);
+  }
+  let iconNumLocal = localStorage.getItem('iconNum');
   if(iconNumLocal) {
     this.iconNum = JSON.parse(iconNumLocal);
   };
@@ -415,7 +465,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
               results.forEach((place: any) => {
                 // デフォルトのアイコンが大きめなので縮小
                 let icon = {
-                  url: place.icon, // url
+                  // url: place.icon, // url
+                  url: this.iconDefault,
                   scaledSize: new google.maps.Size(30, 30), // scaled size
                   origin: new google.maps.Point(0,0), // origin
                   anchor: new google.maps.Point(0, 0) // anchor
@@ -467,7 +518,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                 console.log('getZahyou result', results);
                 results.forEach((place: any) => {
                   let icon = {
-                    url: place.icon, // url
+                    // url: place.icon, // url
+                    url: this.iconDefault,
                     scaledSize: new google.maps.Size(30, 30), // scaled size
                     origin: new google.maps.Point(0,0), // origin
                     anchor: new google.maps.Point(0, 0) // anchor
@@ -549,6 +601,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
       });
     },
     onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => number, lng: () => number}, photo: string}): void {
+console.log('m', m);
       if(this.iconNum >= 10) {
         console.log('10個以上はだめ！！')
         return undefined;
@@ -575,18 +628,40 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           destination = {lat: m.position.lat, lng: m.position.lng};
         }
         //クリックしたところがすでに押されてるか確認
-        let trueOrfalse = false
+        let trueOrfalse: boolean = false;
         for(let i = 0; i < _this.waypoints.length; i++) {
           let latBoolean = this.waypoints[i].location.lat === destination.lat;
           let lngBoolean = this.waypoints[i].location.lng === destination.lng;
           if(latBoolean === true && lngBoolean === true) {
-            trueOrfalse = true
+            trueOrfalse = true;
           }
         }
         //クリックした場所がwaypointsにあったら別処理
         if(trueOrfalse) {
           //waypointsからクリックした場所消し
           _this.waypoints = _this.waypoints.filter(el => el.location.lat !== destination.lat && el.location.lng !== destination.lng);
+console.log('waypointsName', this.waypointsName);
+console.log('m.title', m.title);
+          _this.waypointsName = _this.waypointsName.filter(el => {
+            console.log('el', el);
+            return el !== m.title;
+          });
+console.log('waypointsName', _this.waypointsName);
+          //クリックしたアイコン元に戻す
+          _this.iconNum = _this.iconNum - 1;
+          for(let i = 0; i < _this.markers.length; i++) {
+            if(_this.markers[i].title === m.title) {
+              _this.markers[i].icon.url = _this.iconDefault;
+            }
+          }
+          //waypointsのアイコン整地
+          for(let i = 0; i < _this.waypointsName.length; i++) {
+            for(let j = 0; j < _this.markers.length; j++) {
+              if(_this.waypointsName[i] === _this.markers[j].title) {
+                _this.markers[j].icon.url = _this.iconArrayNumber[i];
+              }
+            }
+          }
           //filterでwaypointsなくなったらルート消し
           if(_this.waypoints.length === 0) {
             this.DR.setMap(null);
@@ -610,6 +685,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                 return
               } else {
                 _this.waypoints.push({location: destination});
+                // _this.waypointsName.push(m.title);
                 _this.DR.setDirections(response);
                 let directionsData = response.routes[0].legs[0];
                 if(!directionsData) {
@@ -631,13 +707,16 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
             travelMode: 'DRIVING'
           }
 localStorage.setItem('route', JSON.stringify(route));
+localStorage.setItem('lastDestination', JSON.stringify(m.title));
           _this.DS.route(route,
             function(response: any, status: any) {
               if(status !== 'OK') {
                 window.alert('Directions request failed due to ' + status);
                 return
               } else {
+console.log('waypoints placeTitle', m.title);
                 _this.waypoints.push({location: destination});
+                _this.waypointsName.push(m.title);
                 // _this.markers = _this.markers.filter(function(marker) {
                 //   let latBoolean = marker.position.lat() === destination.lat
                 //   let lngBoolean = marker.position.lng() === destination.lng
@@ -654,13 +733,13 @@ localStorage.setItem('route', JSON.stringify(route));
                     latBoolean = _this.markers[i].position.lat() === destination.lat;
                     lngBoolean = _this.markers[i].position.lng() === destination.lng;
                     if(latBoolean === true && lngBoolean === true) {
-                      _this.markers[i].icon.url = _this.iconArray[_this.iconNum++];
+                      _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
                     }
                   } else {
                     latBoolean = _this.markers[i].position.lat === destination.lat;
                     lngBoolean = _this.markers[i].position.lng === destination.lng;
                     if(latBoolean === true && lngBoolean === true) {
-                      _this.markers[i].icon.url = _this.iconArray[_this.iconNum++];
+                      _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
                     }
                   }
                 }
@@ -818,5 +897,44 @@ localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
   box-shadow: 0 1px 3px rgba(0,0,0,0.6);
   border-radius: 16px;
   cursor: pointer;
+}
+
+ul {
+  list-style-type: none;
+  padding-left: 0px !important;
+}
+li {
+  cursor: pointer;
+  padding-top: 10px;
+  border: solid #ddd 1px;
+
+}
+.date {
+  &-item {
+    &-one {
+      margin-bottom: 40px;
+      &-border {
+        border-top: solid #ddd 1px;
+        margin-top: 5px;
+        position: relative;
+      }
+      &-name {
+        padding-left: 5px;
+        margin-bottom: 0px !important;
+      }
+    }
+    &-under {
+      width: 30px;
+      height: 30px;
+      border: 5px solid;
+      border-color:  transparent transparent #565656 #565656;
+      transform: rotate(-45deg);
+      position: absolute;
+      margin-left: 45%;
+    }
+    // &-under:last-child {
+    //   display: none;
+    // }
+  }
 }
 </style>
