@@ -83,11 +83,12 @@
         <draggable tag="ul">
           <li v-for="item, index in items" :key="item.no" class="date-item-one">
             <p class="date-item-one-name">
-              {{item.name}}-(No.{{item.no}})
+              time.{{item.time}}-{{item.name}}
             </p>
             <!-- <div class="date-item-one-border" v-if="index != items.length - 1"> -->
             <div class="date-item-one-border">
               <div class="date-item-under"></div>
+              <div class="date-item-time">所要時間〇〇分</div>
             </div>
           </li>
         </draggable>
@@ -327,9 +328,9 @@ export default Vue.extend({
       lastDestination: '',
       waypointsName: [],
       items:[
-        {no:1, name:'キャベツ', categoryNo:'1'},
-        {no:2, name:'ステーキ', categoryNo:'2'},
-        {no:3, name:'リンゴ', categoryNo:'3'}
+        {time: '10:00', name:'hogehoge', categoryNo:'1'},
+        {time: '11:00', name:'hogehoge', categoryNo:'2'},
+        {time: '12:00', name:'hogehoge', categoryNo:'3'}
       ]
     }
   },
@@ -935,6 +936,11 @@ li {
       transform: rotate(-45deg);
       position: absolute;
       margin-left: 45%;
+    }
+    &-time {
+      position: absolute;
+      margin-top: 10px;
+      margin-left: 60%;
     }
     &-end {
       padding-left: 38%;
