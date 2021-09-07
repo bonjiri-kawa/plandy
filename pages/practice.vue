@@ -92,7 +92,7 @@
             </div>
           </li>
         </draggable>
-        <div class="date-item-end">
+        <div class="date-item-end" v-if="items.length > 0">
           デート終了
         </div>
       </v-col>
@@ -247,7 +247,7 @@ interface Data {
   dialogShow: boolean,
   lastDestination: string,
   waypointsName: string[],
-  items: {}[]
+  items: {time: string, name: string}[]
 }
 
 export default Vue.extend({
@@ -328,9 +328,9 @@ export default Vue.extend({
       lastDestination: '',
       waypointsName: [],
       items:[
-        {time: '10:00', name:'hogehoge', categoryNo:'1'},
-        {time: '11:00', name:'hogehoge', categoryNo:'2'},
-        {time: '12:00', name:'hogehoge', categoryNo:'3'}
+        // {time: '10:00', name:'hogehoge', categoryNo:'1'},
+        // {time: '11:00', name:'hogehoge', categoryNo:'2'},
+        // {time: '12:00', name:'hogehoge', categoryNo:'3'}
       ]
     }
   },
@@ -641,11 +641,13 @@ console.log('m', m);
             trueOrfalse = true;
           }
         }
+        console.log('el.name', m.title)
+        _this.items = _this.items.filter(el => el.name !== m.title)
         //クリックした場所がwaypointsにあったら別処理
         if(trueOrfalse) {
           //waypointsからクリックした場所消し
           _this.waypoints = _this.waypoints.filter(el => el.location.lat !== destination.lat && el.location.lng !== destination.lng);
-console.log('waypointsName', this.waypointsName);
+console.log('waypointsName trueOrfalse', this.waypointsName);
 console.log('m.title', m.title);
           _this.waypointsName = _this.waypointsName.filter(el => {
             console.log('el', el);
@@ -689,6 +691,7 @@ console.log('waypointsName', _this.waypointsName);
                 window.alert('Directions request failed due to ' + status);
                 return
               } else {
+console.log('oooooooooooooo')
                 _this.waypoints.push({location: destination});
                 // _this.waypointsName.push(m.title);
                 _this.DR.setDirections(response);
@@ -722,6 +725,7 @@ localStorage.setItem('lastDestination', JSON.stringify(m.title));
 console.log('waypoints placeTitle', m.title);
                 _this.waypoints.push({location: destination});
                 _this.waypointsName.push(m.title);
+                _this.items.push({time: '10:00', name: m.title});
                 // _this.markers = _this.markers.filter(function(marker) {
                 //   let latBoolean = marker.position.lat() === destination.lat
                 //   let lngBoolean = marker.position.lng() === destination.lng
