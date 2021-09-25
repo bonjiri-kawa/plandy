@@ -30,11 +30,14 @@
       <div class="pa-1">
         <v-btn @click="setCircle">半径セット</v-btn>
       </div>
-      <div>
+      <div class="pa-1">
         <v-btn @click="deleteOutOfCirclePin">範囲外のピン消し</v-btn>
       </div>
-      <div>
+      <div class="pa-1">
         <v-btn @click="backToBeforeMap">戻る</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="deleteAllLocalStrage">ローカルストレージ全部削除</v-btn>
       </div>
     </v-row>
     <v-row>
@@ -303,16 +306,16 @@ export default Vue.extend({
         },
       //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
       iconArrayNumber: [
-        'http://maps.google.com/mapfiles/kml/pal3/icon0.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon1.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon2.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon3.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon4.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon5.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon6.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon7.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon16.png',
-        'http://maps.google.com/mapfiles/kml/pal3/icon17.png',
+        'https://maps.google.com/mapfiles/kml/paddle/1.png',
+        'https://maps.google.com/mapfiles/kml/paddle/2.png',
+        'https://maps.google.com/mapfiles/kml/paddle/3.png',
+        'https://maps.google.com/mapfiles/kml/paddle/4.png',
+        'https://maps.google.com/mapfiles/kml/paddle/5.png',
+        'https://maps.google.com/mapfiles/kml/paddle/6.png',
+        'https://maps.google.com/mapfiles/kml/paddle/7.png',
+        'https://maps.google.com/mapfiles/kml/paddle/8.png',
+        'https://maps.google.com/mapfiles/kml/paddle/9.png',
+        'https://maps.google.com/mapfiles/kml/paddle/10.png',
       ],
       iconDefault: defaultIcon,
       iconNum: 0,
@@ -606,7 +609,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
       });
     },
     onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => number, lng: () => number}, photo: string}): void {
-console.log('m', m);
+      console.log('m', m);
       if(this.iconNum >= 10) {
         console.log('10個以上はだめ！！')
         return undefined;
@@ -647,13 +650,13 @@ console.log('m', m);
         if(trueOrfalse) {
           //waypointsからクリックした場所消し
           _this.waypoints = _this.waypoints.filter(el => el.location.lat !== destination.lat && el.location.lng !== destination.lng);
-console.log('waypointsName trueOrfalse', this.waypointsName);
-console.log('m.title', m.title);
+          console.log('waypointsName trueOrfalse', this.waypointsName);
+          console.log('m.title', m.title);
           _this.waypointsName = _this.waypointsName.filter(el => {
             console.log('el', el);
             return el !== m.title;
           });
-console.log('waypointsName', _this.waypointsName);
+          console.log('waypointsName', _this.waypointsName);
           //クリックしたアイコン元に戻す
           _this.iconNum = _this.iconNum - 1;
           for(let i = 0; i < _this.markers.length; i++) {
@@ -691,7 +694,7 @@ console.log('waypointsName', _this.waypointsName);
                 window.alert('Directions request failed due to ' + status);
                 return
               } else {
-console.log('oooooooooooooo')
+                console.log('oooooooooooooo')
                 _this.waypoints.push({location: destination});
                 // _this.waypointsName.push(m.title);
                 _this.DR.setDirections(response);
@@ -714,15 +717,15 @@ console.log('oooooooooooooo')
             waypoints: _this.waypoints,
             travelMode: 'DRIVING'
           }
-localStorage.setItem('route', JSON.stringify(route));
-localStorage.setItem('lastDestination', JSON.stringify(m.title));
+          localStorage.setItem('route', JSON.stringify(route));
+          localStorage.setItem('lastDestination', JSON.stringify(m.title));
           _this.DS.route(route,
             function(response: any, status: any) {
               if(status !== 'OK') {
                 window.alert('Directions request failed due to ' + status);
                 return
               } else {
-console.log('waypoints placeTitle', m.title);
+                console.log('waypoints placeTitle', m.title);
                 _this.waypoints.push({location: destination});
                 _this.waypointsName.push(m.title);
                 _this.items.push({time: '10:00', name: m.title});
@@ -752,8 +755,8 @@ console.log('waypoints placeTitle', m.title);
                     }
                   }
                 }
-localStorage.setItem('mapMarkers', JSON.stringify(_this.markers));
-localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
+                localStorage.setItem('mapMarkers', JSON.stringify(_this.markers));
+                localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
                 _this.DR.setDirections(response);
                 let directionsData = response.routes[0].legs[0];
                 if(!directionsData) {
@@ -825,6 +828,10 @@ localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
       alert("デートに追加しました。")
       this.dialog = false;
 
+    },
+    deleteAllLocalStrage() {
+      localStorage.clear(); // ストレージ全て消す
+      location.reload(); // 地図に反映させる為にリロード
     }
   }
 })
