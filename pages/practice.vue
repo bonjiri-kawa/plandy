@@ -39,6 +39,26 @@
       <div class="pa-1">
         <v-btn @click="deleteAllLocalStrage">ローカルストレージ全部削除</v-btn>
       </div>
+      <div>
+          <v-snackbar
+            v-model="addDateSnackbar"
+            :timeout="3000"
+            right
+            top
+            color="success"
+          >
+            {{ snackbarText.success }}
+          </v-snackbar>
+          <v-snackbar
+            v-model="removeDateSnackbar"
+            :timeout="3000"
+            right
+            top
+            color="red"
+          >
+            {{ snackbarText.remove }}
+          </v-snackbar>
+      </div>
     </v-row>
     <v-row>
       <div>
@@ -60,6 +80,20 @@
           id="map"
           @click="mapClick"
         >
+          <!-- <GmapMarker
+            v-for="(marker, index) in markers"
+            v-bind:key="marker.id"
+            :position="marker.position"
+            :clickable="true"
+            :draggable="false"
+            @click="onClickMarker(index, marker)"
+            :icon="{
+              url: marker.icon.url,
+              origin: marker.icon.origin,
+              anchor: marker.icon.anchor,
+              scaledSize: marker.icon.scaledSize
+            }"
+          /> -->
           <GmapMarker
             v-for="(marker, index) in markers"
             v-bind:key="marker.id"
@@ -81,18 +115,18 @@
           <h4>デートルート</h4>
         </div>
         <draggable tag="ul">
-          <li v-for="item, index in items" :key="item.no" class="date-item-one">
+          <li v-for="item, index in dateItems" :key="item.no" class="date-item-one">
             <p class="date-item-one-name">
               time.{{item.time}}-{{item.name}}
             </p>
-            <!-- <div class="date-item-one-border" v-if="index != items.length - 1"> -->
+            <!-- <div class="date-item-one-border" v-if="index != dateItems.length - 1"> -->
             <div class="date-item-one-border">
               <div class="date-item-under"></div>
               <div class="date-item-time">所要時間〇〇分</div>
             </div>
           </li>
         </draggable>
-        <div class="date-item-end" v-if="items.length > 0">
+        <div class="date-item-end" v-if="dateItems.length > 0">
           デート終了
         </div>
       </v-col>
@@ -106,7 +140,7 @@
       {{ dateSpots }}
     </div>
     <!-- vuetify ポップアップ -->
-      <!-- <v-app id="inspire" v-show="dialogShow">
+      <v-app id="inspire" v-show="dialogShow">
         <div class="text-center">
           <v-dialog
             v-model="dialog"
@@ -114,9 +148,9 @@
           >
             <v-card>
               <v-card-title class="headline grey lighten-2">
-                詳細情報
+                {{selectedPlace.dateSpot.title}}
               </v-card-title>
-              <v-carousel v-model="model">
+              <v-carousel v-model="dataspotCarruselModel">
                 <v-carousel-item
                   v-for="(color, i) in colors"
                   :key="color"
@@ -132,35 +166,52 @@
                       justify="center"
                     >
                       <div class="text-h2">
-                        Slide {{i + 1}}
+                        {{i + 1}}
+                        <!-- <v-img
+                          v-if="selectedPlace.photos[0]"
+                          :lazy-src="selectedPlace.photos[0]"
+                          max-height="300"
+                          max-width="422"
+                          :src="selectedPlace.photos[0]"
+                        ></v-img> -->
                       </div>
                     </v-row>
                   </v-sheet>
                 </v-carousel-item>
               </v-carousel>
-              <!-- <v-card-text>{{selectedPlace.title}}</v-card-text>
-              <v-img
-                v-if="selectedPlace.photos[0]"
-                :lazy-src="selectedPlace.photos[0]"
+              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.title}}</v-card-text>
+              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.priceLevel}}</v-card-text>
+              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.rating}}</v-card-text>
+              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.photos}}</v-card-text>
+              <!-- hamada bak phones[]にきちんと格納できていないかもしれないので -->
+              <!-- <v-img
+                v-if="selectedPlace.dateSpot.photos[0]"
+                :lazy-src="selectedPlace.dateSpot.photos[0]"
                 max-height="300"
                 max-width="422"
-                :src="selectedPlace.photos[0]"
-              ></v-img>
-              <v-card-text v-if="!selectedPlace.photos[0]">画像はありません</v-card-text>
+                :src="selectedPlace.dateSpot.photos[0]"
+              ></v-img> -->
+              <!-- <v-card-text v-if="!selectedPlace.photos[0]">画像はありません</v-card-text> -->
               
               <v-divider></v-divider>
       
               <v-card-actions>
                 <v-spacer></v-spacer>
                 <v-btn
+                  v-if="!selectedFlag"
                   color="error"
                   text
-                  @click="addDateSpots({
-                    id: selectedPlace.id,
-                    title: selectedPlace.title,
-                  })"
+                  @click="addDateSpots()"
                 >
                   デートに追加する
+                </v-btn>
+                <v-btn
+                  v-if="selectedFlag"
+                  color="error"
+                  text
+                  @click="removeDateSpots()"
+                >
+                  デートから削除する
                 </v-btn>
                 <v-btn
                   color="primary"
@@ -169,11 +220,13 @@
                 >
                   閉じる
                 </v-btn>
-              </v-card-actions> -->
-            <!-- </v-card>
+                
+              </v-card-actions>
+            </v-card>
           </v-dialog>
+          
         </div>
-      </v-app> -->
+      </v-app>
     </v-app>
   </div>
 </template>
@@ -245,17 +298,25 @@ interface Data {
   waypoints: {location: {lat: number, lng: number}}[],
   circleInstance: {},
   dialog: boolean,
-  selectedPlace:{id: string, title: string, photo: string},
+  //selectedPlace:{index:number, id: string, title: string, photos:string[], priceLevel:number ,rating:number},
+  selectedPlace:{
+    index: number, dateSpot: {id:string, title: string, position: {lat: () => number, lng: () => number}, photos: string[], priceLevel:number, rating:number }
+  }
+  selectedFlag:boolean, //選択したスポットがデートリストにあるか? true:ある false:ない
   iconArrayNumber: string[],
   iconDefault: string,
   iconNum: number,
-  model: number,
+  dataspotCarruselModel: number,
   colors: string[],
   dialogShow: boolean,
   lastDestination: string,
   waypointsName: string[],
-  items: {time: string, name: string}[],
-  testPic: string[]
+  dateItems: {time: string, name: string}[],
+  testPic: string[],
+  multiLine: boolean,
+  addDateSnackbar: boolean,
+  removeDateSnackbar: boolean,
+  snackbarText: object,
 }
 
 export default Vue.extend({
@@ -305,11 +366,15 @@ export default Vue.extend({
       DR: '',
       waypoints: [],
       circleInstance: {},
-      dialog: true,
+      dialog: false,
+      // hamada bak
+      // selectedPlace:{
+      //   id: '', title: '', photos: [], priceLevel: 0, rating: 0
+      //   },
       selectedPlace:{
-        id: '', title: '', photos: [], priceLevel: 0, rating: 0
-        },
-      //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
+        index: 0, dateSpot: {id:"", title: "", position: {lat: () => 0, lng: () => 0}, photos:[], priceLevel:0, rating:0 }
+      },
+      selectedFlag:false,
       iconArrayNumber: [
         'https://maps.google.com/mapfiles/kml/paddle/1.png',
         'https://maps.google.com/mapfiles/kml/paddle/2.png',
@@ -324,7 +389,7 @@ export default Vue.extend({
       ],
       iconDefault: defaultIcon,
       iconNum: 0,
-      model: 0,
+      dataspotCarruselModel: 0,
       colors: [
         'primary',
         'secondary',
@@ -335,12 +400,19 @@ export default Vue.extend({
       dialogShow: false,
       lastDestination: '',
       waypointsName: [],
-      items:[
+      dateItems:[
         // {time: '10:00', name:'hogehoge', categoryNo:'1'},
         // {time: '11:00', name:'hogehoge', categoryNo:'2'},
         // {time: '12:00', name:'hogehoge', categoryNo:'3'}
       ],
-      testPic:[testIcon1,testIcon2]
+      testPic:[testIcon1,testIcon2],
+      multiLine: true,
+      addDateSnackbar: false,
+      removeDateSnackbar: false,
+      snackbarText:{
+        success: "デートを追加しました",
+        remove: "デートを削除しました",
+      }
     }
   },
   components: {
@@ -497,6 +569,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                   origin: new google.maps.Point(0,0), // origin
                   anchor: new google.maps.Point(15, 30) // hamada デフォルトだとtop-leftが基準点となっているのでアイコンのサイズに合わせてx軸y軸をずらして表示させる。ピンの下部の先っちょが刺さるように表示されるので地図を拡大縮小させてもズレない。
                 };
+                // TODO 店舗の画像が今stringで格納されているが、これを配列で取扱したい
                 let maker = {
                   position: place.geometry.location,
                   icon: icon,
@@ -507,6 +580,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                 };
                 this.markers.push(maker);
               });
+              console.log("hamada this.markers.push(maker);")
+              console.log(this.markers);
               _this.setCircle();
             }
           }.bind(this)
@@ -561,6 +636,9 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                   this.markers.push(maker);
                   // console.log('markers', this.markers);
                 });
+                console.log("hamada this.markers.push(maker);")
+                console.log(this.markers);
+                
                 this.setCircle();
               }
             }.bind(this)
@@ -626,28 +704,30 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
         strokeWeight: 1// 外周太さ（ピクセル）
       });
     },
-    onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => number, lng: () => number}, photo: string}): void {
+    onClickMarker(index: number, m: {id:string, title: string, position: {lat: () => number, lng: () => number}, photos: string[], priceLevel:number, rating:number }): void {
       console.log('m', m);
+      
       if(this.iconNum >= 10) {
         console.log('10個以上はだめ！！')
         return undefined;
       } 
       let _this = this
-      this.dialog = true;
-      this.dialogShow = true;
+      
       if(this.DR === null) {
         this.DR = new google.maps.DirectionsRenderer();
       }
       //m取れてるか確認
       if(m) {
-        this.selectedPlace.id = m.id;
-        this.selectedPlace.title = m.title;
-        this.selectedPlace.photos = m.photos;
-        this.selectedPlace.priceLevel = m.priceLevel;
-        this.selectedPlace.rating = m.rating;
-      　
-        let map = (_this as any).$refs.mapRef.$mapObject;
-        const center = {lat: _this.maplocation.lat, lng: _this.maplocation.lng}
+        console.log("m.photos", m.photos)
+        this.selectedPlace.dateSpot.id = m.id;
+        this.selectedPlace.dateSpot.title = m.title;
+        this.selectedPlace.dateSpot.photos = m.photos;
+        this.selectedPlace.dateSpot.priceLevel = m.priceLevel;
+        this.selectedPlace.dateSpot.rating = m.rating; 
+        this.selectedPlace.dateSpot.position.lat = m.position.lat; 
+        this.selectedPlace.dateSpot.position.lng = m.position.lng; 
+        console.log("this.photos", this.selectedPlace.dateSpot.photos)
+
         let destination: any;
         if(typeof m.position.lat === 'function' && typeof m.position.lng === 'function') {
           console.log('funciton??')
@@ -665,145 +745,26 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           }
         }
         console.log('el.name', m.title)
-        _this.items = _this.items.filter(el => el.name !== m.title)
+        // hamada bak デートから削除
+        // _this.dateItems = _this.dateItems.filter(el => el.name !== m.title)
         //クリックした場所がwaypointsにあったら別処理
         // hamada クリックした箇所が同じところか？ true:同じところ false:違うところ
+        
+        
+        
         if(trueOrfalse) {
-          // alert("同じピンが押された")
-          //waypointsからクリックした場所消し
-          _this.waypoints = _this.waypoints.filter(el => el.location.lat !== destination.lat && el.location.lng !== destination.lng);
-          console.log('waypointsName trueOrfalse', this.waypointsName);
-          console.log('m.title', m.title);
-          _this.waypointsName = _this.waypointsName.filter(el => {
-            console.log('el', el);
-            return el !== m.title;
-          });
-          console.log('waypointsName', _this.waypointsName);
-          //クリックしたアイコン元に戻す
-          _this.iconNum = _this.iconNum - 1;
-          
-          
-          for(let i = 0; i < _this.markers.length; i++) {
-            if(_this.markers[i].title === m.title) {
-              // hamada アイコンの表示を変える
-              _this.markers[i].icon.url = _this.iconDefault;
-              _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
-                _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
-            }
-          }
-          //waypointsのアイコン整地
-          for(let i = 0; i < _this.waypointsName.length; i++) {
-            for(let j = 0; j < _this.markers.length; j++) {
-              if(_this.waypointsName[i] === _this.markers[j].title) {
-                _this.markers[j].icon.url = _this.iconArrayNumber[i];
-                _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
-                _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
-              }
-            }
-          }
-          //filterでwaypointsなくなったらルート消し
-          if(_this.waypoints.length === 0) {
-            this.DR.setMap(null);
-            return
-          }
-          //waypointsの最後の場所を目的地に
-          destination = {lat: _this.waypoints[_this.waypoints.length - 1].location.lat, lng: _this.waypoints[_this.waypoints.length - 1].location.lng}
-          //waypointsからdestination消し
-          _this.waypoints.pop();
-          _this.DR.setMap(map);
-          const route = {
-            origin: center,
-            destination: destination,
-            waypoints: _this.waypoints,
-            travelMode: 'DRIVING'
-          }
-          _this.DS.route(route,
-            function(response: any, status: any) {
-              if(status !== 'OK') {
-                window.alert('Directions request failed due to ' + status);
-                return
-              } else {
-                console.log('oooooooooooooo')
-                _this.waypoints.push({location: destination});
-                // _this.waypointsName.push(m.title);
-                _this.DR.setDirections(response);
-                let directionsData = response.routes[0].legs[0];
-                if(!directionsData) {
-                  window.alert('Directions request failed');
-                  return;
-                } else {
-                  _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
-                }
-              }
-            }
-          );
-          return
+          //デートにあるところがクリックされた時
+          this.selectedFlag = true // デートスポットにある
+          // return
         } else {
-          // alert("はじめての同じピンが押された")
-          _this.DR.setMap(map);
-          const route = {
-            origin: center,
-            destination: destination,
-            waypoints: _this.waypoints,
-            travelMode: 'DRIVING'
-          }
-          localStorage.setItem('route', JSON.stringify(route));
-          localStorage.setItem('lastDestination', JSON.stringify(m.title));
-          _this.DS.route(route,
-            function(response: any, status: any) {
-              if(status !== 'OK') {
-                window.alert('Directions request failed due to ' + status);
-                return
-              } else {
-                console.log('waypoints placeTitle', m.title);
-                _this.waypoints.push({location: destination});
-                _this.waypointsName.push(m.title);
-                _this.items.push({time: '10:00', name: m.title});
-                // hamada icon bak
-                // _this.markers = _this.markers.filter(function(marker) {
-                //   let latBoolean = marker.position.lat() === destination.lat
-                //   let lngBoolean = marker.position.lng() === destination.lng
-                //   return (latBoolean === true && lngBoolean === true) || marker.destination === true;
-                // })
-                let latBoolean: boolean;
-                let lngBoolean: boolean;
-                // hamada アイコンをクリックして順番アイコンを表示
-                for(let i = 0; i < _this.markers.length; i++) {
-                  if(typeof _this.markers[i].position.lat === 'function' && typeof _this.markers[i].position.lng === 'function') {
-                    latBoolean = _this.markers[i].position.lat() === destination.lat;
-                    lngBoolean = _this.markers[i].position.lng() === destination.lng;
-                    if(latBoolean === true && lngBoolean === true) {
-                      _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
-                      _this.markers[i].icon.scaledSize = new google.maps.Size(30,30);// hamada 順番アイコンは少し大きく表示
-                      _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
-                    }
-                  } else {
-                    latBoolean = _this.markers[i].position.lat === destination.lat;
-                    lngBoolean = _this.markers[i].position.lng === destination.lng;
-                    if(latBoolean === true && lngBoolean === true) {
-                      _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
-                      _this.markers[i].icon.scaledSize = new google.maps.Size(30,30);// hamada 順番アイコンは少し大きく表示
-                      _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
-                    }
-                  }
-                }
-                // alert("ピンが押された2")
-                localStorage.setItem('mapMarkers', JSON.stringify(_this.markers));
-                localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
-                // hamada ナンバーピンが立っていたのは↓のDRのせい
-                _this.DR.setDirections(response);
-                let directionsData = response.routes[0].legs[0];
-                if(!directionsData) {
-                  window.alert('Directions request failed');
-                  return;
-                } else {
-                  _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
-                }
-              }
-            }
-          );
-          return
+          this.selectedFlag = false //デートスポットにない
+          // return
         }
+        
+        this.dialog = true;
+        this.dialogShow = true;
+        
+        
 //         this.DR.setMap(map);
 //         const route = {
 //           origin: center,
@@ -854,14 +815,177 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
     deleteOutOfCirclePin() {
       let center = ''
     },
-    addDateSpots(data : {id: string, title: string}) {
-      this.dateSpots.push({
-        id: data.id,
-        title: data.title
-      })
-      alert("デートに追加しました。")
+    addDateSpots():void {
+      
+      let _this = this;
+      let map = (_this as any).$refs.mapRef.$mapObject;
+      const center = {lat: _this.maplocation.lat, lng: _this.maplocation.lng}
+      let destination: any;
+      if(typeof this.selectedPlace.dateSpot.position.lat === 'function' && typeof this.selectedPlace.dateSpot.position.lng === 'function') {
+        console.log('funciton??')
+        destination = {lat: this.selectedPlace.dateSpot.position.lat(), lng: this.selectedPlace.dateSpot.position.lng()};
+      } else {
+        destination = {lat: this.selectedPlace.dateSpot.position.lat, lng: this.selectedPlace.dateSpot.position.lng};
+      }
+      _this.DR.setMap(map);
+      const route = {
+        origin: center,
+        destination: destination,
+        waypoints: _this.waypoints,
+        travelMode: 'DRIVING'
+      }
+      localStorage.setItem('route', JSON.stringify(route));
+      localStorage.setItem('lastDestination', JSON.stringify(this.selectedPlace.dateSpot.title));
+      _this.DS.route(route,
+        function(response: any, status: any) {
+          if(status !== 'OK') {
+            window.alert('Directions request failed due to ' + status);
+            return
+          } else {
+            console.log('waypoints placeTitle', _this.selectedPlace.dateSpot.title);
+            _this.waypoints.push({location: destination});
+            _this.waypointsName.push(_this.selectedPlace.dateSpot.title);
+            
+            _this.dateItems.push({time: '10:00', name: _this.selectedPlace.dateSpot.title});
+            // hamada icon bak これなんだった？
+            // _this.markers = _this.markers.filter(function(marker) {
+            //   let latBoolean = marker.position.lat() === destination.lat
+            //   let lngBoolean = marker.position.lng() === destination.lng
+            //   return (latBoolean === true && lngBoolean === true) || marker.destination === true;
+            // })
+            let latBoolean: boolean;
+            let lngBoolean: boolean;
+            // hamada アイコンをクリックして順番アイコンを表示
+            for(let i = 0; i < _this.markers.length; i++) {
+              if(typeof _this.markers[i].position.lat === 'function' && typeof _this.markers[i].position.lng === 'function') {
+                latBoolean = _this.markers[i].position.lat() === destination.lat;
+                lngBoolean = _this.markers[i].position.lng() === destination.lng;
+                if(latBoolean === true && lngBoolean === true) {
+                  _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
+                  _this.markers[i].icon.scaledSize = new google.maps.Size(30,30);// hamada 順番アイコンは少し大きく表示
+                  _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
+                }
+              } else {
+                latBoolean = _this.markers[i].position.lat === destination.lat;
+                lngBoolean = _this.markers[i].position.lng === destination.lng;
+                if(latBoolean === true && lngBoolean === true) {
+                  _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
+                  _this.markers[i].icon.scaledSize = new google.maps.Size(30,30);// hamada 順番アイコンは少し大きく表示
+                  _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
+                }
+              }
+            }
+            // alert("ピンが押された2")
+            localStorage.setItem('mapMarkers', JSON.stringify(_this.markers));
+            localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
+            // hamada ナンバーピンが立っていたのは↓のDRのせい
+            _this.DR.setDirections(response);
+            let directionsData = response.routes[0].legs[0];
+            if(!directionsData) {
+              window.alert('Directions request failed');
+              return;
+            } else {
+              _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
+            }
+          }
+        }
+      );
+  
+    // alert("デートに追加しました。")
+    this.dateSpots.push({
+      id: this.selectedPlace.dateSpot.id,
+      title: this.selectedPlace.dateSpot.title
+    })
+    this.addDateSnackbar = true
+    this.dialog = false;
+    },
+    removeDateSpots():void {
+      // TODO 最後に削除しようとしたらできない
+      let _this = this;
+      // デートスポットから削除
+      _this.dateItems = _this.dateItems.filter(el => el.name !== this.selectedPlace.dateSpot.title)
+      
+      let map = (_this as any).$refs.mapRef.$mapObject;
+      const center = {lat: _this.maplocation.lat, lng: _this.maplocation.lng}
+      let destination: any;
+      if(typeof this.selectedPlace.dateSpot.position.lat === 'function' && typeof this.selectedPlace.dateSpot.position.lng === 'function') {
+        console.log('funciton??')
+        destination = {lat: this.selectedPlace.dateSpot.position.lat(), lng: this.selectedPlace.dateSpot.position.lng()};
+      } else {
+        destination = {lat: this.selectedPlace.dateSpot.position.lat, lng: this.selectedPlace.dateSpot.position.lng};
+      }
+      //waypointsからクリックした場所消し
+      _this.waypoints = _this.waypoints.filter(el => el.location.lat !== destination.lat && el.location.lng !== destination.lng);
+      console.log('waypointsName trueOrfalse', this.waypointsName);
+      console.log('title', this.selectedPlace.dateSpot.title);
+      _this.waypointsName = _this.waypointsName.filter(el => {
+        console.log('el', el);
+        return el !== this.selectedPlace.dateSpot.title;
+      });
+      console.log('waypointsName', _this.waypointsName);
+      //クリックしたアイコン元に戻す
+      _this.iconNum = _this.iconNum - 1;
+      
+      
+      for(let i = 0; i < _this.markers.length; i++) {
+        if(_this.markers[i].title === this.selectedPlace.dateSpot.title) {
+          // hamada アイコンの表示を変える
+          _this.markers[i].icon.url = _this.iconDefault;
+          _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
+            _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
+        }
+      }
+      //waypointsのアイコン整地
+      for(let i = 0; i < _this.waypointsName.length; i++) {
+        for(let j = 0; j < _this.markers.length; j++) {
+          if(_this.waypointsName[i] === _this.markers[j].title) {
+            _this.markers[j].icon.url = _this.iconArrayNumber[i];
+            _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
+            _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
+          }
+        }
+      }
+      
+      this.removeDateSnackbar = true
       this.dialog = false;
-
+      
+      //filterでwaypointsなくなったらルート消し
+      if(_this.waypoints.length === 0) {
+        this.DR.setMap(null);
+        return
+      }
+      //waypointsの最後の場所を目的地に
+      destination = {lat: _this.waypoints[_this.waypoints.length - 1].location.lat, lng: _this.waypoints[_this.waypoints.length - 1].location.lng}
+      //waypointsからdestination消し
+      _this.waypoints.pop();
+      _this.DR.setMap(map);
+      const route = {
+        origin: center,
+        destination: destination,
+        waypoints: _this.waypoints,
+        travelMode: 'DRIVING'
+      }
+      _this.DS.route(route,
+        function(response: any, status: any) {
+          if(status !== 'OK') {
+            window.alert('Directions request failed due to ' + status);
+            return
+          } else {
+            console.log('oooooooooooooo')
+            _this.waypoints.push({location: destination});
+            // _this.waypointsName.push(m.title);
+            _this.DR.setDirections(response);
+            let directionsData = response.routes[0].legs[0];
+            if(!directionsData) {
+              window.alert('Directions request failed');
+              return;
+            } else {
+              _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
+            }
+          }
+        }
+      );
+      
     },
     deleteAllLocalStrage() {
       localStorage.clear(); // ストレージ全て消す
