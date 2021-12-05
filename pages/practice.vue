@@ -774,8 +774,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                     lngBoolean = _this.markers[i].position.lng() === destination.lng;
                     if(latBoolean === true && lngBoolean === true) {
                       _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
-                      _this.markers[i].icon.scaledSize = new google.maps.Size(50,50);// hamada 順番アイコンは少し大きく表示
-                      _this.markers[i].icon.anchor = new google.maps.Point(25, 50); // hamada anchor場所を調整
+                      _this.markers[i].icon.scaledSize = new google.maps.Size(30,30);// hamada 順番アイコンは少し大きく表示
+                      _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
                     }
                   } else {
                     latBoolean = _this.markers[i].position.lat === destination.lat;
@@ -783,7 +783,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                     if(latBoolean === true && lngBoolean === true) {
                       _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
                       _this.markers[i].icon.scaledSize = new google.maps.Size(30,30);// hamada 順番アイコンは少し大きく表示
-                      _this.markers[i].icon.anchor = new google.maps.Point(25, 50); // hamada anchor場所を調整
+                      _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
                     }
                   }
                 }
