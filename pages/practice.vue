@@ -77,18 +77,18 @@
         </GmapMap>
       </v-col>
       <v-col md="3" class="pl-0 pr-3">
-        <div class="mb-4">
-          <h4>デートルート</h4>
-        </div>
         <draggable tag="ul">
           <li v-for="item, index in items" :key="item.no" class="date-item-one">
-            <p class="date-item-one-name">
+            <span class="date-item-one-icon">
+              <img :src="item.photo" alt="">
+            </span>
+            <span class="date-item-one-name">
               time.{{item.time}}-{{item.name}}
-            </p>
+            </span>
             <!-- <div class="date-item-one-border" v-if="index != items.length - 1"> -->
             <div class="date-item-one-border">
               <div class="date-item-under"></div>
-              <div class="date-item-time">所要時間〇〇分</div>
+              <div class="date-item-time">所要時間{{ item.rootTime }}</div>
             </div>
           </li>
         </draggable>
@@ -755,10 +755,26 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                 window.alert('Directions request failed due to ' + status);
                 return
               } else {
+                //directionの所要時間
+                let directionsDataRoot;
+                for(let i = 0; i < response.routes[0].legs.length; i++) {
+                  if(i === response.routes[0].legs.length - 1) {
+                    directionsDataRoot = response.routes[0].legs[i].duration.text
+                  }
+                }
+// console.log('directons', response.routes[0].legs[0])
+                // let directionsDataRoot = response.routes[0].legs[0].duration.text;
+console.log('directions Time', directionsDataRoot)
+                if(!directionsDataRoot) {
+                  window.alert('Directions request failed');
+                  return;
+                } else {
+                  // _this.directionsMsg = directionsDataRoot.distance.text + directionsData.duration.text + '.
+                }
                 console.log('waypoints placeTitle', m.title);
                 _this.waypoints.push({location: destination});
                 _this.waypointsName.push(m.title);
-                _this.items.push({time: '10:00', name: m.title});
+                _this.items.push({time: '10:00', name: m.title, photo: m.photo, rootTime: directionsDataRoot? directionsDataRoot : '不明'});
                 // hamada icon bak
                 // _this.markers = _this.markers.filter(function(marker) {
                 //   let latBoolean = marker.position.lat() === destination.lat
@@ -962,7 +978,17 @@ li {
 .date {
   &-item {
     &-one {
+      height: 50px;
       margin-bottom: 40px;
+      margin-right: 10px;
+      padding-top: 0px !important;
+      position: relative;
+      &-icon {
+        & img {
+          width: 10%;
+          height: 100%;
+        }
+      }
       &-border {
         // border-top: solid #ddd 1px;
         margin-top: 5px;
@@ -971,6 +997,9 @@ li {
       &-name {
         padding-left: 5px;
         margin-bottom: 0px !important;
+        width: 75%;
+        position: absolute;
+        padding-top: 10px;
       }
     }
     &-under {
@@ -981,10 +1010,11 @@ li {
       transform: rotate(-45deg);
       position: absolute;
       margin-left: 45%;
+      margin-top: -20px;
     }
     &-time {
       position: absolute;
-      margin-top: 10px;
+      margin-top: -10px;
       margin-left: 60%;
     }
     &-end {
