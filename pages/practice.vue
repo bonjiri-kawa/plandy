@@ -60,9 +60,6 @@
           id="map"
           @click="mapClick"
         >
-          <GmapInfoWindow>
-            <p>hoge</p>
-          </GmapInfoWindow>
           <GmapMarker
             v-for="(marker, index) in markers"
             v-bind:key="marker.id"
@@ -189,6 +186,9 @@ import draggable from 'vuedraggable';
 document.addEventListener('touchstart', function() {}, {passive: true});
 
 const defaultIcon = require('../assets/icon/places_21753.png');
+const testIcon1 = require('../assets/img/testimonials-1.jpg');
+const testIcon2 = require('../assets/img/testimonials-2.jpg');
+const testIcon3 = require('../assets/img/testimonials-3.jpg');
 
 
 interface Data {
@@ -206,7 +206,10 @@ interface Data {
       lat: () => number,
       lng: () => number
     },
-    icon: {url: string},
+    icon: {
+      url: string,
+      scaledSize: any
+      },
     destination: boolean
   }[]
   markersSub: []
@@ -250,7 +253,8 @@ interface Data {
   dialogShow: boolean,
   lastDestination: string,
   waypointsName: string[],
-  items: {time: string, name: string}[]
+  items: {time: string, name: string}[],
+  testPic: string[]
 }
 
 export default Vue.extend({
@@ -305,6 +309,7 @@ export default Vue.extend({
         id: '', title: '', photo: ''
         },
       //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
+      // iconArrayNumber: [testIcon1,testIcon2,testIcon2,testIcon2,testIcon2,testIcon2,testIcon3],
       iconArrayNumber: [
         'https://maps.google.com/mapfiles/kml/paddle/1.png',
         'https://maps.google.com/mapfiles/kml/paddle/2.png',
@@ -334,7 +339,8 @@ export default Vue.extend({
         // {time: '10:00', name:'hogehoge', categoryNo:'1'},
         // {time: '11:00', name:'hogehoge', categoryNo:'2'},
         // {time: '12:00', name:'hogehoge', categoryNo:'3'}
-      ]
+      ],
+      testPic:[testIcon1,testIcon2]
     }
   },
   components: {
@@ -408,6 +414,18 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
       let _this = this;
       this.DS = new google.maps.DirectionsService();
       this.DR = new google.maps.DirectionsRenderer();
+      // hamada オプションをセットしてみる
+      // hamada おまえやん。。。。。
+      this.DR.setOptions({
+        markerOptions: {
+            // hamada Directionsの公式ドキュメント(https://developers.google.com/maps/documentation/javascript/reference/directions)を参考にしたがDirectionsのデフォルトで表示される"A","B","C".....を数字に変える方法は不明。そのためDirectionsとして描画される時にアイコン(数字のアイコン)を設定するのではなく、Markerとして(?)クリックした時に数字のアイコンを設定することにする
+            
+            // icon:'https://maps.google.com/mapfiles/kml/paddle/1.png',
+            visible:false,// hamada visible:falseでデフォルトの"A","B","C"は有効
+          },
+      
+        });
+      
       let localMapMarkersLocal = localStorage.getItem('mapMarkers');
       let localRoute = localStorage.getItem('route'); 
       if(localMapMarkersLocal && localRoute) {
@@ -419,7 +437,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
             lat: () => number,
             lng: () => number
           },
-          icon: {url: string},
+          icon: {url: string, scaledSize:any},
           destination: boolean
         }[] = JSON.parse(localMapMarkersLocal);
         let localRouteMap: {
@@ -647,7 +665,9 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
         console.log('el.name', m.title)
         _this.items = _this.items.filter(el => el.name !== m.title)
         //クリックした場所がwaypointsにあったら別処理
+        // hamada クリックした箇所が同じところか？ true:同じところ false:違うところ
         if(trueOrfalse) {
+          // alert("同じピンが押された")
           //waypointsからクリックした場所消し
           _this.waypoints = _this.waypoints.filter(el => el.location.lat !== destination.lat && el.location.lng !== destination.lng);
           console.log('waypointsName trueOrfalse', this.waypointsName);
@@ -659,9 +679,13 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           console.log('waypointsName', _this.waypointsName);
           //クリックしたアイコン元に戻す
           _this.iconNum = _this.iconNum - 1;
+          
+          
           for(let i = 0; i < _this.markers.length; i++) {
             if(_this.markers[i].title === m.title) {
+              // hamada アイコンの表示を変える
               _this.markers[i].icon.url = _this.iconDefault;
+              _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada アイコンサイズをデフォルトに戻す
             }
           }
           //waypointsのアイコン整地
@@ -669,6 +693,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
             for(let j = 0; j < _this.markers.length; j++) {
               if(_this.waypointsName[i] === _this.markers[j].title) {
                 _this.markers[j].icon.url = _this.iconArrayNumber[i];
+                _this.markers[i].icon.scaledSize = new google.maps.Size(40, 40); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
               }
             }
           }
@@ -710,6 +735,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           );
           return
         } else {
+          // alert("はじめての同じピンが押された")
           _this.DR.setMap(map);
           const route = {
             origin: center,
@@ -729,34 +755,36 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                 _this.waypoints.push({location: destination});
                 _this.waypointsName.push(m.title);
                 _this.items.push({time: '10:00', name: m.title});
+                // hamada icon bak
                 // _this.markers = _this.markers.filter(function(marker) {
                 //   let latBoolean = marker.position.lat() === destination.lat
                 //   let lngBoolean = marker.position.lng() === destination.lng
                 //   return (latBoolean === true && lngBoolean === true) || marker.destination === true;
                 // })
-                // for(let i = 0; i < _this.markers.length; i++) {
-                //   _this.markers[i].destination = true;
-                //   _this.markers[i].icon.url = _this.iconArray[i];
-                // }
                 let latBoolean: boolean;
                 let lngBoolean: boolean;
+                // hamada アイコンをクリックして順番アイコンを表示
                 for(let i = 0; i < _this.markers.length; i++) {
                   if(typeof _this.markers[i].position.lat === 'function' && typeof _this.markers[i].position.lng === 'function') {
                     latBoolean = _this.markers[i].position.lat() === destination.lat;
                     lngBoolean = _this.markers[i].position.lng() === destination.lng;
                     if(latBoolean === true && lngBoolean === true) {
                       _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
+                      _this.markers[i].icon.scaledSize = new google.maps.Size(50, 50);// hamada 順番アイコンは40,40で少し大きく設定
                     }
                   } else {
                     latBoolean = _this.markers[i].position.lat === destination.lat;
                     lngBoolean = _this.markers[i].position.lng === destination.lng;
                     if(latBoolean === true && lngBoolean === true) {
                       _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
+                      _this.markers[i].icon.scaledSize = new google.maps.Size(50, 50);// hamada 順番アイコンは40,40で少し大きく設定
                     }
                   }
                 }
+                // alert("ピンが押された2")
                 localStorage.setItem('mapMarkers', JSON.stringify(_this.markers));
                 localStorage.setItem('iconNum', JSON.stringify(_this.iconNum));
+                // hamada ナンバーピンが立っていたのは↓のDRのせい
                 _this.DR.setDirections(response);
                 let directionsData = response.routes[0].legs[0];
                 if(!directionsData) {
