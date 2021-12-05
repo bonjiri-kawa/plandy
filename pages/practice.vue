@@ -167,13 +167,13 @@
                     >
                       <div class="text-h2">
                         {{i + 1}}
-                        <!-- <v-img
-                          v-if="selectedPlace.photos[0]"
-                          :lazy-src="selectedPlace.photos[0]"
+                        <v-img
+                          v-if="selectedPlace.dateSpot.photos[i]"
+                          :lazy-src="selectedPlace.dateSpot.photos[i]"
                           max-height="300"
                           max-width="422"
-                          :src="selectedPlace.photos[0]"
-                        ></v-img> -->
+                          :src="selectedPlace.dateSpot.photos[i]"
+                        ></v-img>
                       </div>
                     </v-row>
                   </v-sheet>
@@ -561,6 +561,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
               console.log('hamada photo', results[0].photos[0].getUrl({maxWidth: 640}));
               
               results.forEach((place: any) => {
+                console.log("place", place)
                 // デフォルトのアイコンが大きめなので縮小
                 let icon = {
                   // url: place.icon, // url
@@ -569,15 +570,33 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                   origin: new google.maps.Point(0,0), // origin
                   anchor: new google.maps.Point(15, 30) // hamada デフォルトだとtop-leftが基準点となっているのでアイコンのサイズに合わせてx軸y軸をずらして表示させる。ピンの下部の先っちょが刺さるように表示されるので地図を拡大縮小させてもズレない。
                 };
+                // 画像URLを取得
+                // let urlArray = []; 
+                let urlArray = new Array();
+                place.photos.forEach(function (photoInfo:any) {
+                    // console.log(value);
+                    let imgUrl = photoInfo.getUrl({maxWidth: 640})
+                    urlArray.push(imgUrl)
+                    console.log("urlArray", urlArray)
+                });
                 // TODO 店舗の画像が今stringで格納されているが、これを配列で取扱したい
                 let maker = {
                   position: place.geometry.location,
                   icon: icon,
                   id: place.place_id,
                   title: place.name,
-                  photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
+                  // photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
+                  photos: urlArray,
                   destination: false,
                 };
+                // place.photos.forEach(function (photoInfo:string) => {
+                //   let imgUrl = photoInfo.getUrl({maxWidth: 640})
+                //   maker.photos.push(imgUrl)
+                // });
+                // strKeyObject: { [s: string]: string };  
+                
+                
+                
                 this.markers.push(maker);
               });
               console.log("hamada this.markers.push(maker);")
@@ -625,12 +644,20 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                     origin: new google.maps.Point(0, 0), // origin
                     anchor: new google.maps.Point(15, 30),
                   };
+                  let urlArray = new Array();
+                  place.photos.forEach(function (photoInfo:any) {
+                      // console.log(value);
+                      let imgUrl = photoInfo.getUrl({maxWidth: 640})
+                      urlArray.push(imgUrl)
+                      console.log("urlArray", urlArray)
+                  });
                   let maker = {
                     position: place.geometry.location,
                     icon: icon,
                     id: place.place_id,
                     title: place.name,
-                    photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
+                    // photo: ("photos" in place) ? place.photos[0].getUrl({maxWidth: 640}) : '',
+                    photos: urlArray,
                     destination: false
                   };
                   this.markers.push(maker);
