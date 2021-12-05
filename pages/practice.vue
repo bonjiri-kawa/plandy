@@ -22,7 +22,7 @@
         <v-btn @click="clickDialog">ダイアログ</v-btn>
       </div>
       <div class="pa-1">
-        <v-btn @click="getZahyo">座標取得</v-btn>
+        <v-btn class="green white--text" @click="getZahyo">検索</v-btn>
       </div>
       <div class="pa-1">
         <v-btn @click="initMap">initMap</v-btn>
@@ -208,7 +208,8 @@ interface Data {
     },
     icon: {
       url: string,
-      scaledSize: any
+      scaledSize: any,
+      anchor: any
       },
     destination: boolean
   }[]
@@ -309,7 +310,6 @@ export default Vue.extend({
         id: '', title: '', photo: ''
         },
       //selectedPlace:{title: string, position: {lat: () => void, lng: () => void}}
-      // iconArrayNumber: [testIcon1,testIcon2,testIcon2,testIcon2,testIcon2,testIcon2,testIcon3],
       iconArrayNumber: [
         'https://maps.google.com/mapfiles/kml/paddle/1.png',
         'https://maps.google.com/mapfiles/kml/paddle/2.png',
@@ -437,7 +437,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
             lat: () => number,
             lng: () => number
           },
-          icon: {url: string, scaledSize:any},
+          icon: {url: string, scaledSize: any, anchor: any},
           destination: boolean
         }[] = JSON.parse(localMapMarkersLocal);
         let localRouteMap: {
@@ -495,7 +495,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                   url: this.iconDefault,
                   scaledSize: new google.maps.Size(30, 30), // scaled size
                   origin: new google.maps.Point(0,0), // origin
-                  anchor: new google.maps.Point(0, 0) // anchor
+                  anchor: new google.maps.Point(15, 30) // hamada デフォルトだとtop-leftが基準点となっているのでアイコンのサイズに合わせてx軸y軸をずらして表示させる。ピンの下部の先っちょが刺さるように表示されるので地図を拡大縮小させてもズレない。
                 };
                 let maker = {
                   position: place.geometry.location,
@@ -547,8 +547,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                     // url: place.icon, // url
                     url: this.iconDefault,
                     scaledSize: new google.maps.Size(30, 30), // scaled size
-                    origin: new google.maps.Point(0,0), // origin
-                    anchor: new google.maps.Point(0, 0) // anchor
+                    origin: new google.maps.Point(0, 0), // origin
+                    anchor: new google.maps.Point(15, 30),
                   };
                   let maker = {
                     position: place.geometry.location,
@@ -685,7 +685,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
             if(_this.markers[i].title === m.title) {
               // hamada アイコンの表示を変える
               _this.markers[i].icon.url = _this.iconDefault;
-              _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada アイコンサイズをデフォルトに戻す
+              _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
+                _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
             }
           }
           //waypointsのアイコン整地
@@ -693,7 +694,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
             for(let j = 0; j < _this.markers.length; j++) {
               if(_this.waypointsName[i] === _this.markers[j].title) {
                 _this.markers[j].icon.url = _this.iconArrayNumber[i];
-                _this.markers[i].icon.scaledSize = new google.maps.Size(40, 40); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
+                _this.markers[i].icon.scaledSize = new google.maps.Size(30, 30); // hamada クリックしたアイコン以外のアイコンのサイズは40のまま
+                _this.markers[i].icon.anchor = new google.maps.Point(15, 30); // hamada anchor場所を調整
               }
             }
           }
@@ -770,14 +772,16 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                     lngBoolean = _this.markers[i].position.lng() === destination.lng;
                     if(latBoolean === true && lngBoolean === true) {
                       _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
-                      _this.markers[i].icon.scaledSize = new google.maps.Size(50, 50);// hamada 順番アイコンは40,40で少し大きく設定
+                      _this.markers[i].icon.scaledSize = new google.maps.Size(50,50);// hamada 順番アイコンは少し大きく表示
+                      _this.markers[i].icon.anchor = new google.maps.Point(25, 50); // hamada anchor場所を調整
                     }
                   } else {
                     latBoolean = _this.markers[i].position.lat === destination.lat;
                     lngBoolean = _this.markers[i].position.lng === destination.lng;
                     if(latBoolean === true && lngBoolean === true) {
                       _this.markers[i].icon.url = _this.iconArrayNumber[_this.iconNum++];
-                      _this.markers[i].icon.scaledSize = new google.maps.Size(50, 50);// hamada 順番アイコンは40,40で少し大きく設定
+                      _this.markers[i].icon.scaledSize = new google.maps.Size(30,30);// hamada 順番アイコンは少し大きく表示
+                      _this.markers[i].icon.anchor = new google.maps.Point(25, 50); // hamada anchor場所を調整
                     }
                   }
                 }
