@@ -22,7 +22,7 @@
         <v-btn @click="clickDialog">ダイアログ</v-btn>
       </div>
       <div class="pa-1">
-        <v-btn class="green white--text" @click="getZahyo">検索</v-btn>
+        <v-btn class="green white--text" @click="searchDatespot">検索</v-btn>
       </div>
       <div class="pa-1">
         <v-btn @click="initMap">initMap</v-btn>
@@ -607,7 +607,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
         );
       }
     },
-    getZahyo() {
+    searchDatespot() {
       let geocoder = new google.maps.Geocoder();
       let _this = this;
       geocoder.geocode({'address': this.destination, 'language': 'ja'}, function(this: any, results: any, status: any) {
@@ -626,6 +626,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           let maps = (this as any).$refs.mapRef.$mapObject;
 
           let placeService = new google.maps.places.PlacesService(maps);
+          // hamada nearbySearch公式ドキュメント https://developers.google.com/maps/documentation/places/web-service/search-nearby#maps_http_places_nearbysearch-txt
           placeService.nearbySearch(
             {
               location: new google.maps.LatLng(this.lat, this.lng),
@@ -635,7 +636,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
             },
             function(this: any, results: any, status: any) {
               if(status == google.maps.places.PlacesServiceStatus.OK) {
-                console.log('getZahyou result', results);
+                console.log('searchDatespotu result', results);
                 results.forEach((place: any) => {
                   let icon = {
                     // url: place.icon, // url
@@ -644,9 +645,10 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                     origin: new google.maps.Point(0, 0), // origin
                     anchor: new google.maps.Point(15, 30),
                   };
+                  // 画像が1つしかない
                   let urlArray = new Array();
                   place.photos.forEach(function (photoInfo:any) {
-                      // console.log(value);
+                      console.log("photoInfo", photoInfo);
                       let imgUrl = photoInfo.getUrl({maxWidth: 640})
                       urlArray.push(imgUrl)
                       console.log("urlArray", urlArray)
@@ -776,51 +778,38 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
         // _this.dateItems = _this.dateItems.filter(el => el.name !== m.title)
         //クリックした場所がwaypointsにあったら別処理
         // hamada クリックした箇所が同じところか？ true:同じところ false:違うところ
-        
-        
-        
         if(trueOrfalse) {
           //デートにあるところがクリックされた時
           this.selectedFlag = true // デートスポットにある
-          // return
         } else {
           this.selectedFlag = false //デートスポットにない
-          // return
         }
-        
         this.dialog = true;
         this.dialogShow = true;
         
-        
-//         this.DR.setMap(map);
-//         const route = {
-//           origin: center,
-//           destination: dakota,
-//           // waypoints: _this.waypoints,
-//           waypoints: _this.waypoints,
-//           travelMode: 'DRIVING'
-//         }
-//         console.log('route', route);
-//         this.DS.route(route,
-//           function(response, status) {
-//             if(status !== 'OK') {
-//               window.alert('Directions request failed due to ' + status);
-//               return
-//             } else {
-//               // _this.waypoints.push({location: dakota});
-//               _this.DR.setDirections(response);
-//               let directionsData = response.routes[0].legs[0];
-//             //Get data about the mapped route
-//               if(!directionsData) {
-//                 window.alert('Directions request failed');
-//                 return;
-//               } else {
-//                 console.log(directionsData);
-//                 _this.directionsMsg = directionsData.distance.text + directionsData.duration.text + '.'
-//               }
-//             }
-//           }
-//         );
+        // 場所の詳細情報を取得
+        let map = (this as any).$refs.mapRef.$mapObject;
+        let placeService = new google.maps.places.PlacesService(map);
+        // インスタンスを作成してplace_detailsを呼び出してcallバックの中で写真をthis.selectedPlacePhotosの中に入れればOK
+        var request = {
+        placeId: this.selectedPlace.dateSpot.id,
+        fields: ['name', 'rating', 'formatted_phone_number', 'website', 'photos', 'reviews']
+        };
+
+        placeService.getDetails(request, function(this: any, results: any, status: any) {
+          if (status == google.maps.places.PlacesServiceStatus.OK) {
+            console.log("place details results", results)
+            let urlArray = new Array();
+            results.photos.forEach(function (photoInfo:any) {
+                // console.log(value);
+                let imgUrl = photoInfo.getUrl({maxWidth: 640})
+                urlArray.push(imgUrl)
+                console.log("urlArray", urlArray)
+            });
+            this.selectedPlace.dateSpot.photos = urlArray;    
+            // TODO selectedPlaceの処理に無駄があるので整理する
+          }
+        }.bind(this));
       } else {
         console.log('値取れてないよ～')
       }
@@ -837,7 +826,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
         this.DR.setMap(null);
         this.DR = null;
       }
-      // this.getZahyo();
+      // this.searchDatespot();
     },
     deleteOutOfCirclePin() {
       let center = ''
