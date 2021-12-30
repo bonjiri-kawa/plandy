@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-app>
-    <v-row class="mx-2 mt-8" justify="center">
+    <v-row class="mx-3 mt-5" justify="start">
       <v-col cols="12" sm="12" md="4" lg="4" xl="3">
         <v-text-field
           label="目的地"
@@ -16,25 +16,28 @@
           v-model="keyword"
         ></v-text-field>
       </v-col>
-      <v-col cols="12" sm="12" md="4" lg="4" xl="2" align="center">
+      <v-col cols="12" sm="12" md="4" lg="4" xl="2">
         <div class="">
           <v-btn class="green white--text" @click="searchDatespot" x-large>検索</v-btn>
         </div>
       </v-col>
     </v-row>
     
-    <v-row class="" justify="center">
+    <v-row class="ml-3" justify="start">
       <v-col cols="12" sm="12" md="4" lg="3" xl="2">
         <v-select
-          :items="[1,3,4,5,12]"
+          :items="spotTypeList"
+          item-text="ja"
+          item-value="en"
           label="検索カテゴリー"
+          v-model="dateSpotCategory"
           dense
         ></v-select>
       </v-col>
       <v-col cols="12" sm="12" md="4" lg="3" xl="2">
         <v-select
           :items="priceItems"
-          label="最小料金"
+          label="最小料金ランク"
           dense
           v-model="minPrice"
         ></v-select>
@@ -42,16 +45,17 @@
       <v-col cols="12" sm="12" md="4" lg="3" xl="2">
         <v-select
           :items="priceItems"
-          label="最大料金"
+          label="最大料金ランク"
           dense
           v-model="maxPrice"
         ></v-select>
       </v-col>
       <v-col cols="12" sm="12" md="4" lg="3" xl="2">
         <v-select
-          :items="[1,2,3,4,5,52]"
-          label="レビューランク"
+          :items="priceItems"
+          label="評価ランク"
           dense
+          v-model="maxPrice"
         ></v-select>
       </v-col>
     </v-row>
@@ -336,10 +340,12 @@ interface Data {
   id: number,
   directionsMsg: string,
   destination: string,
+  spotTypeList: {ja:string, en:string}[],
+  dateSpotCategory: string,
   keyword: string,
-  minPrice: number,
-  maxPrice: number,
-  priceItems: number[]
+  minPrice: string,
+  maxPrice: string,
+  priceItems: string[]
   DS: any,
   DR: any,
   waypoints: {location: {lat: number, lng: number}}[],
@@ -408,10 +414,57 @@ export default Vue.extend({
       id: 4,
       directionsMsg: '',
       destination: '',
+      spotTypeList: [
+        {
+          ja:"飲食店",
+          en:"restaurant"
+        },
+        {
+          ja:"遊園地",
+          en:"amusement_park"
+        },
+        {
+          ja:"水族館",
+          en:"aquarium"
+        },
+        {
+          ja:"美術館",
+          en:"museum"
+        },
+        {
+          ja:"バー",
+          en:"bar"
+        },
+        {
+          ja:"カフェ",
+          en:"cafe"
+        },
+        {
+          ja:"宿泊",
+          en:"lodging"
+        },
+        {
+          ja:"映画館",
+          en:"museum"
+        },
+        {
+          ja:"公園",
+          en:"park"
+        },
+        {
+          ja:"ショッピングモール",
+          en:"shopping_mall"
+        },
+        {
+          ja:"動物園",
+          en:"zoo"
+        }
+      ],
+      dateSpotCategory: '',
       keyword: '',
-      minPrice: 0, //hamada google側の料金は0~4段階で分けられているのでminの初期値は0, maxの初期値は4にしてユーザーが検索の際に料金指定をしなければ全ての料金の範囲の検索をリクエストできるようにする
-      maxPrice: 4,
-      priceItems: [0,1,2,3,4],
+      minPrice: "0", //hamada google側の料金は0~4段階で分けられているのでminの初期値は0, maxの初期値は4にしてユーザーが検索の際に料金指定をしなければ全ての料金の範囲の検索をリクエストできるようにする
+      maxPrice: "4",
+      priceItems: ["0","1","2","3","4"],
       DS: '',
       DR: '',
       waypoints: [],
@@ -676,13 +729,20 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
           let maps = (this as any).$refs.mapRef.$mapObject;
 
           let placeService = new google.maps.places.PlacesService(maps);
+          console.log('hamda max price', _this.maxPrice);
+          console.log('hamda min price', _this.minPrice);
           // hamada nearbySearch公式ドキュメント https://developers.google.com/maps/documentation/places/web-service/search-nearby#maps_http_places_nearbysearch-txt
           placeService.nearbySearch(
             {
               location: new google.maps.LatLng(this.lat, this.lng),
               radius: '550', // TODO radius:'1000'に設定すると想定する距離(半径1000m)よりも広い距離を対象に検索してしまう課題が未解決。'550'にすると想定する半径1000mに近しくなるので暫定的に対応。調べたけど不明。
-              type: ['restaurant'],
-              keyword: _this.keyword
+              type: _this.dateSpotCategory,
+              keyword: _this.keyword,
+              // TODO maxpriceとminpriceをパラメーターにつけてリクエストしているけどフィルターされない。以下参考URL
+              //https://developers.google.com/maps/documentation/places/web-service/search-nearby#maxprice
+              //https://googlemaps.github.io/google-maps-services-js/modules/_places_placesnearby_.html
+              maxprice: 3,
+              minprice: 2
             },
             function(this: any, results: any, status: any) {
               if(status == google.maps.places.PlacesServiceStatus.OK) {
@@ -698,10 +758,10 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                   // 画像が1つしかない
                   let urlArray = new Array();
                   place.photos.forEach(function (photoInfo:any) {
-                      console.log("photoInfo", photoInfo);
+                      // console.log("photoInfo", photoInfo);
                       let imgUrl = photoInfo.getUrl({maxWidth: 640})
                       urlArray.push(imgUrl)
-                      console.log("urlArray", urlArray)
+                      // console.log("urlArray", urlArray)
                   });
                   let maker = {
                     position: place.geometry.location,
@@ -715,8 +775,8 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                   this.markers.push(maker);
                   // console.log('markers', this.markers);
                 });
-                console.log("hamada this.markers.push(maker);")
-                console.log(this.markers);
+                // console.log("hamada this.markers.push(maker);")
+                // console.log(this.markers);
                 
                 this.setCircle();
               }
