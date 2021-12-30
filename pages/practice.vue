@@ -1,73 +1,66 @@
 <template>
   <div>
     <v-app>
-    <v-row>
-      <v-col>
+    <v-row class="mx-2 mt-8" justify="center">
+      <v-col cols="12" sm="12" md="4" lg="4" xl="3">
         <v-text-field
           label="目的地"
           outlined
           v-model="destination"
         ></v-text-field>
       </v-col>
-      <v-col>
+      <v-col cols="12" sm="12" md="4" lg="4" xl="3">
         <v-text-field
           label="キーワード"
           outlined
           v-model="keyword"
         ></v-text-field>
       </v-col>
+      <v-col cols="12" sm="12" md="4" lg="4" xl="2" align="center">
+        <div class="">
+          <v-btn class="green white--text" @click="searchDatespot" x-large>検索</v-btn>
+        </div>
+      </v-col>
     </v-row>
-    <v-row>
-      <div class="pa-1">
-        <v-btn @click="clickDialog">ダイアログ</v-btn>
-      </div>
-      <div class="pa-1">
+    
+    <v-row class="" justify="center">
+      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+        <v-select
+          :items="[1,3,4,5,12]"
+          label="検索カテゴリー"
+          dense
+        ></v-select>
+      </v-col>
+      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+        <v-select
+          :items="priceItems"
+          label="最小料金"
+          dense
+          v-model="minPrice"
+        ></v-select>
+      </v-col>
+      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+        <v-select
+          :items="priceItems"
+          label="最大料金"
+          dense
+          v-model="maxPrice"
+        ></v-select>
+      </v-col>
+      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+        <v-select
+          :items="[1,2,3,4,5,52]"
+          label="レビューランク"
+          dense
+        ></v-select>
+      </v-col>
+    </v-row>
+    <!-- <v-row class="mx-2 mt-4" justify="center">
+      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
         <v-btn class="green white--text" @click="searchDatespot">検索</v-btn>
-      </div>
-      <div class="pa-1">
-        <v-btn @click="initMap">initMap</v-btn>
-      </div>
-      <div class="pa-1">
-        <v-btn @click="setCircle">半径セット</v-btn>
-      </div>
-      <div class="pa-1">
-        <v-btn @click="deleteOutOfCirclePin">範囲外のピン消し</v-btn>
-      </div>
-      <div class="pa-1">
-        <v-btn @click="backToBeforeMap">戻る</v-btn>
-      </div>
-      <div class="pa-1">
-        <v-btn @click="deleteAllLocalStrage">ローカルストレージ全部削除</v-btn>
-      </div>
-      <div>
-          <v-snackbar
-            v-model="addDateSnackbar"
-            :timeout="3000"
-            right
-            top
-            color="success"
-          >
-            {{ snackbarText.success }}
-          </v-snackbar>
-          <v-snackbar
-            v-model="removeDateSnackbar"
-            :timeout="3000"
-            right
-            top
-            color="red"
-          >
-            {{ snackbarText.remove }}
-          </v-snackbar>
-      </div>
-    </v-row>
-    <v-row>
-      <div>
-        {{ waypoints }}
-      </div>
-      <div>
-        {{ waypointsName }}
-      </div>
-    </v-row>
+      </v-col>
+    </v-row> -->
+
     <v-row>
       <v-col md="9">
         <GmapMap
@@ -139,6 +132,57 @@
       デートスポット
       {{ dateSpots }}
     </div>
+        <v-row class="mt-5">
+      <div class="pa-1">
+        <v-btn @click="clickDialog">ダイアログ</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn class="green white--text" @click="searchDatespot">検索</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="initMap">initMap</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="setCircle">半径セット</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="deleteOutOfCirclePin">範囲外のピン消し</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="backToBeforeMap">戻る</v-btn>
+      </div>
+      <div class="pa-1">
+        <v-btn @click="deleteAllLocalStrage">ローカルストレージ全部削除</v-btn>
+      </div>
+      <div>
+          <v-snackbar
+            v-model="addDateSnackbar"
+            :timeout="3000"
+            right
+            top
+            color="success"
+          >
+            {{ snackbarText.success }}
+          </v-snackbar>
+          <v-snackbar
+            v-model="removeDateSnackbar"
+            :timeout="3000"
+            right
+            top
+            color="red"
+          >
+            {{ snackbarText.remove }}
+          </v-snackbar>
+      </div>
+    </v-row>
+    <v-row>
+      <div>
+        {{ waypoints }}
+      </div>
+      <div>
+        {{ waypointsName }}
+      </div>
+    </v-row>
     <!-- vuetify ポップアップ -->
       <v-app id="inspire" v-show="dialogShow">
         <div class="text-center">
@@ -293,6 +337,9 @@ interface Data {
   directionsMsg: string,
   destination: string,
   keyword: string,
+  minPrice: number,
+  maxPrice: number,
+  priceItems: number[]
   DS: any,
   DR: any,
   waypoints: {location: {lat: number, lng: number}}[],
@@ -362,6 +409,9 @@ export default Vue.extend({
       directionsMsg: '',
       destination: '',
       keyword: '',
+      minPrice: 0, //hamada google側の料金は0~4段階で分けられているのでminの初期値は0, maxの初期値は4にしてユーザーが検索の際に料金指定をしなければ全ての料金の範囲の検索をリクエストできるようにする
+      maxPrice: 4,
+      priceItems: [0,1,2,3,4],
       DS: '',
       DR: '',
       waypoints: [],
