@@ -116,9 +116,6 @@
         </GmapMap>
       </v-col>
       <v-col md="3" class="pl-0 pr-3">
-        <div class="mb-4">
-          <h4>デートルート</h4>
-        </div>
         <draggable tag="ul">
           <li v-for="item, index in dateItems" :key="item.no" class="date-item-one">
             <p class="date-item-one-name">
@@ -127,7 +124,7 @@
             <!-- <div class="date-item-one-border" v-if="index != dateItems.length - 1"> -->
             <div class="date-item-one-border">
               <div class="date-item-under"></div>
-              <div class="date-item-time">所要時間〇〇分</div>
+              <div class="date-item-time">所要時間{{ item.rootTime }}</div>
             </div>
           </li>
         </draggable>
@@ -1252,7 +1249,17 @@ li {
 .date {
   &-item {
     &-one {
+      height: 50px;
       margin-bottom: 40px;
+      margin-right: 10px;
+      padding-top: 0px !important;
+      position: relative;
+      &-icon {
+        & img {
+          width: 10%;
+          height: 100%;
+        }
+      }
       &-border {
         // border-top: solid #ddd 1px;
         margin-top: 5px;
@@ -1261,6 +1268,9 @@ li {
       &-name {
         padding-left: 5px;
         margin-bottom: 0px !important;
+        width: 75%;
+        position: absolute;
+        padding-top: 10px;
       }
     }
     &-under {
@@ -1271,10 +1281,11 @@ li {
       transform: rotate(-45deg);
       position: absolute;
       margin-left: 45%;
+      margin-top: -20px;
     }
     &-time {
       position: absolute;
-      margin-top: 10px;
+      margin-top: -10px;
       margin-left: 60%;
     }
     &-end {
