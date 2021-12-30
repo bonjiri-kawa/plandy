@@ -237,7 +237,6 @@
               </v-carousel>
               <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.title}}</v-card-text>
               <v-card-text class="font-weight-bold">価格帯：{{selectedPlace.dateSpot.priceLevel}}</v-card-text>
-              <v-card-text class="font-weight-bold">評価ランク：{{selectedPlace.dateSpot.rating}}</v-card-text>
                 <v-card
                   v-for="(review, index) in selectedPlace.dateSpot.reviews"
                   :key="index"
