@@ -3,7 +3,6 @@
     <v-app>
     <v-row class="mx-3 mt-5" justify="start">
       <v-col cols="12" sm="12" md="4" lg="4" xl="3">
-        
         <v-text-field
           label="目的地"
           outlined
@@ -197,12 +196,14 @@
         <div class="text-center">
           <v-dialog
             v-model="dialog"
-            width="700"
+            width="800"
+            scrollable
           >
             <v-card>
               <v-card-title class="headline grey lighten-2">
                 {{selectedPlace.dateSpot.title}}
               </v-card-title>
+              
               <v-carousel v-model="dataspotCarruselModel">
                 <v-carousel-item
                   v-for="(color, i) in colors"
@@ -217,31 +218,36 @@
                       align="center"
                       justify="center"
                     >
-                      <div>
-                        <v-img
-                          v-if="selectedPlace.dateSpot.photos[i]"
-                          :lazy-src="selectedPlace.dateSpot.photos[i]"
-                          :src="selectedPlace.dateSpot.photos[i]"
-                        ></v-img>
-                      </div>
+                      
+                    <v-img
+                      v-if="selectedPlace.dateSpot.photos[i]"
+                      :lazy-src="selectedPlace.dateSpot.photos[i]"
+                      :src="selectedPlace.dateSpot.photos[i]"
+                      aspect-ratio="1.7"
+                      contain
+                    ></v-img>
+                      
                     </v-row>
                   </v-sheet>
                 </v-carousel-item>
               </v-carousel>
-              <v-card-text class="font-weight-bold mt-3">価格帯
-                <p>{{selectedPlace.dateSpot.priceLevel}}</p>
-                <v-icon>fas fa-yen-sign</v-icon>
-              </v-card-text>
-              <v-card-text class="font-weight-bold">総評価
+              
+              <v-card-text class="font-weight-bold mt-3" style="height: 500px;">価格
+                <b v-if="selectedPlace.dateSpot.priceLevel == '' || selectedPlace.dateSpot.priceLevel == undefined">データなし</b>
+                <v-icon
+                  v-for="n in selectedPlace.dateSpot.priceLevel"
+                  :key="n"
+                  large
+                  color="green darken-2"
+                  >mdi-currency-jpy</v-icon>
                 <star-rating 
                   v-model="selectedPlace.dateSpot.rating"
                   active-color="#f00"
                   v-bind:star-size="35">
                 </star-rating>
-              </v-card-text>      
                 <v-card
-                  v-for="(review, index) in selectedPlace.dateSpot.reviews"
-                  :key="index"
+                  v-for="review in selectedPlace.dateSpot.reviews"
+                  :key="review.text"
                   class="mx-auto"
                 >
                   <v-card-text>
@@ -259,6 +265,8 @@
                     </div>
                   </v-card-text>
                 </v-card>
+              </v-card-text>      
+
               <!-- hamada bak phones[]にきちんと格納できていないかもしれないので -->
               <!-- <v-img
                 v-if="selectedPlace.dateSpot.photos[0]"
@@ -281,6 +289,7 @@
                 >
                   デートに追加する
                 </v-btn>
+
                 <v-btn
                   v-if="selectedFlag"
                   color="error"
@@ -300,7 +309,6 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
-          
         </div>
       </v-app>
     </v-app>
