@@ -200,7 +200,7 @@
         <div class="text-center">
           <v-dialog
             v-model="dialog"
-            width="500"
+            width="700"
           >
             <v-card>
               <v-card-title class="headline grey lighten-2">
@@ -212,7 +212,6 @@
                   :key="color"
                 >
                   <v-sheet
-                    :color="color"
                     height="100%"
                     tile
                   >
@@ -221,13 +220,10 @@
                       align="center"
                       justify="center"
                     >
-                      <div class="text-h2">
-                        {{i + 1}}
+                      <div>
                         <v-img
                           v-if="selectedPlace.dateSpot.photos[i]"
                           :lazy-src="selectedPlace.dateSpot.photos[i]"
-                          max-height="300"
-                          max-width="422"
                           :src="selectedPlace.dateSpot.photos[i]"
                         ></v-img>
                       </div>
@@ -235,19 +231,26 @@
                   </v-sheet>
                 </v-carousel-item>
               </v-carousel>
-              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.title}}</v-card-text>
-              <v-card-text class="font-weight-bold">価格帯：{{selectedPlace.dateSpot.priceLevel}}</v-card-text>
+              <v-card-text class="font-weight-bold mt-3">価格帯
+                <p>{{selectedPlace.dateSpot.priceLevel}}</p>
+                <v-icon>fas fa-yen-sign</v-icon>
+              </v-card-text>
+              <v-card-text class="font-weight-bold">総評価
+                <star-rating 
+                  v-model="selectedPlace.dateSpot.rating"
+                  active-color="#f00"
+                  v-bind:star-size="35">
+                </star-rating>
+              </v-card-text>      
                 <v-card
                   v-for="(review, index) in selectedPlace.dateSpot.reviews"
                   :key="index"
                   class="mx-auto"
-                  max-width="344"
                 >
                   <v-card-text>
                     <p class="text--primary">
                       {{review.author_name}}
                     </p>
-                    <p>評価:{{review.rating}}</p>
                     <star-rating 
                       v-model="review.rating"
                       active-color="#f00"
