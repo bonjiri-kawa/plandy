@@ -23,6 +23,7 @@
     "nuxt-composition-api": "^0.11.0",
     "ts-node": "^9.1.1",
     "vue-google-maps-typescript": "^0.1.4",
+    "vue-star-rating": "^1.7.0",
     "vue2-google-maps": "^0.10.7",
     "vuedraggable": "^2.24.3"
   },

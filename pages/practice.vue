@@ -3,6 +3,7 @@
     <v-app>
     <v-row class="mx-3 mt-5" justify="start">
       <v-col cols="12" sm="12" md="4" lg="4" xl="3">
+        
         <v-text-field
           label="目的地"
           outlined
@@ -24,7 +25,7 @@
     </v-row>
     
     <v-row class="ml-3" justify="start">
-      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+      <v-col cols="12" sm="12" md="4" lg="2" xl="2">
         <v-select
           :items="spotTypeList"
           item-text="ja"
@@ -34,7 +35,7 @@
           dense
         ></v-select>
       </v-col>
-      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+      <v-col cols="12" sm="12" md="4" lg="2" xl="2">
         <v-select
           :items="priceItems"
           label="最小料金ランク"
@@ -42,7 +43,7 @@
           v-model="minPrice"
         ></v-select>
       </v-col>
-      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+      <v-col cols="12" sm="12" md="4" lg="2" xl="2">
         <v-select
           :items="priceItems"
           label="最大料金ランク"
@@ -50,14 +51,21 @@
           v-model="maxPrice"
         ></v-select>
       </v-col>
-      <v-col cols="12" sm="12" md="4" lg="3" xl="2">
+      <v-col cols="12" sm="12" md="4" lg="2" xl="2">
+        <v-select
+          :items="priceItems"
+          label="検索範囲(Km)"
+          dense
+        ></v-select>
+      </v-col>
+      <!-- <v-col cols="12" sm="12" md="4" lg="3" xl="2">
         <v-select
           :items="priceItems"
           label="評価ランク"
           dense
           v-model="maxPrice"
         ></v-select>
-      </v-col>
+      </v-col> -->
     </v-row>
     <!-- <v-row class="mx-2 mt-4" justify="center">
       <v-col cols="12" sm="12" md="4" lg="3" xl="2">
@@ -228,9 +236,30 @@
                 </v-carousel-item>
               </v-carousel>
               <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.title}}</v-card-text>
-              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.priceLevel}}</v-card-text>
-              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.rating}}</v-card-text>
-              <v-card-text class="font-weight-bold">{{selectedPlace.dateSpot.photos}}</v-card-text>
+              <v-card-text class="font-weight-bold">価格帯：{{selectedPlace.dateSpot.priceLevel}}</v-card-text>
+              <v-card-text class="font-weight-bold">評価ランク：{{selectedPlace.dateSpot.rating}}</v-card-text>
+                <v-card
+                  v-for="(review, index) in selectedPlace.dateSpot.reviews"
+                  :key="index"
+                  class="mx-auto"
+                  max-width="344"
+                >
+                  <v-card-text>
+                    <p class="text--primary">
+                      {{review.author_name}}
+                    </p>
+                    <p>評価:{{review.rating}}</p>
+                    <star-rating 
+                      v-model="review.rating"
+                      active-color="#f00"
+                      v-bind:star-size="20">
+                    </star-rating>
+                    <p>{{review.relative_time_description}}</p>
+                    <div class="text--primary">
+                      {{review.text}}
+                    </div>
+                  </v-card-text>
+                </v-card>
               <!-- hamada bak phones[]にきちんと格納できていないかもしれないので -->
               <!-- <v-img
                 v-if="selectedPlace.dateSpot.photos[0]"
@@ -283,6 +312,7 @@
 import Vue from 'vue'
 declare let google: any;
 import draggable from 'vuedraggable';
+import StarRating from 'vue-star-rating';
 
 document.addEventListener('touchstart', function() {}, {passive: true});
 
@@ -325,7 +355,8 @@ interface Data {
   infoWindowPos: any
   infoWinOpen: boolean
   marker: {}
-  geocoder: {}
+  geocoder: {},
+  starrating: number
   address: string
   latitude: number
   longitude: number
@@ -353,7 +384,7 @@ interface Data {
   dialog: boolean,
   //selectedPlace:{index:number, id: string, title: string, photos:string[], priceLevel:number ,rating:number},
   selectedPlace:{
-    index: number, dateSpot: {id:string, title: string, position: {lat: () => number, lng: () => number}, photos: string[], priceLevel:number, rating:number }
+    index: number, dateSpot: {id:string, title: string, position: {lat: () => number, lng: () => number}, photos: string[], priceLevel:number, rating:number, reviews:{}[] }
   }
   selectedFlag:boolean, //選択したスポットがデートリストにあるか? true:ある false:ない
   iconArrayNumber: string[],
@@ -386,6 +417,7 @@ export default Vue.extend({
         styles: []
       },
       markers: [],
+      starrating:0,
       markersSub: [],
       infoOptions: {
         // minWidth: 200,
@@ -475,7 +507,7 @@ export default Vue.extend({
       //   id: '', title: '', photos: [], priceLevel: 0, rating: 0
       //   },
       selectedPlace:{
-        index: 0, dateSpot: {id:"", title: "", position: {lat: () => 0, lng: () => 0}, photos:[], priceLevel:0, rating:0 }
+        index: 0, dateSpot: {id:"", title: "", position: {lat: () => 0, lng: () => 0}, photos:[], priceLevel:0, rating:0, reviews:[] }
       },
       selectedFlag:false,
       iconArrayNumber: [
@@ -519,7 +551,7 @@ export default Vue.extend({
     }
   },
   components: {
-    draggable
+    draggable,StarRating
   },
   async created() {
   },
@@ -861,11 +893,12 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
         this.selectedPlace.dateSpot.id = m.id;
         this.selectedPlace.dateSpot.title = m.title;
         this.selectedPlace.dateSpot.photos = m.photos;
-        this.selectedPlace.dateSpot.priceLevel = m.priceLevel;
-        this.selectedPlace.dateSpot.rating = m.rating; 
+        // this.selectedPlace.dateSpot.priceLevel = m.priceLevel;
+        // this.selectedPlace.dateSpot.rating = m.rating; 
         this.selectedPlace.dateSpot.position.lat = m.position.lat; 
         this.selectedPlace.dateSpot.position.lng = m.position.lng; 
         console.log("this.photos", this.selectedPlace.dateSpot.photos)
+        console.log("this.selectedPlace.dateSpot", this.selectedPlace.dateSpot)
 
         let destination: any;
         if(typeof m.position.lat === 'function' && typeof m.position.lng === 'function') {
@@ -903,7 +936,7 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
         // インスタンスを作成してplace_detailsを呼び出してcallバックの中で写真をthis.selectedPlacePhotosの中に入れればOK
         var request = {
         placeId: this.selectedPlace.dateSpot.id,
-        fields: ['name', 'rating', 'formatted_phone_number', 'website', 'photos', 'reviews']
+        fields: ['name', 'rating', 'formatted_phone_number', 'website', 'photos', 'reviews',"opening_hours", "price_level"]
         };
 
         placeService.getDetails(request, function(this: any, results: any, status: any) {
@@ -914,9 +947,14 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
                 // console.log(value);
                 let imgUrl = photoInfo.getUrl({maxWidth: 640})
                 urlArray.push(imgUrl)
-                console.log("urlArray", urlArray)
+                // console.log("urlArray", urlArray)
             });
-            this.selectedPlace.dateSpot.photos = urlArray;    
+            this.selectedPlace.dateSpot.photos = urlArray;
+            this.selectedPlace.dateSpot.priceLevel = results.price_level;
+            this.selectedPlace.dateSpot.rating = results.rating; 
+            this.selectedPlace.dateSpot.reviews = results.reviews; 
+            //sss
+            //TODO shopDatailsの中からrating,website,reviewsを抽出してモーダルに出力する 
             // TODO selectedPlaceの処理に無駄があるので整理する
           }
         }.bind(this));
