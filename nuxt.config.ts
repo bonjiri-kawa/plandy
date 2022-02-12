@@ -44,8 +44,9 @@ const nuxtConfig: Configuration = {
   // Modules for dev and build (recommended): https://go.nuxtjs.dev/config-modules
   buildModules: [
     // https://go.nuxtjs.dev/typescript
+    '@nuxtjs/vuetify',
     '@nuxt/typescript-build',
-    // '@nuxtjs/vuetify',
+    
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
@@ -65,7 +66,7 @@ const nuxtConfig: Configuration = {
     //   app: ({ isDev }) => isDev ? '[name].[hash].js' : '[chunkhash].js',
     //   chunk: ({ isDev }) => isDev ? '[name].[hash].js' : '[chunkhash].js'
     // },
-    publicPath: './',
+    // publicPath: './',
     loaders: {
       // SCSSを扱う.
       scss: {
