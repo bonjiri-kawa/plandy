@@ -5,12 +5,18 @@ import { Configuration } from '@nuxt/types';
 const nuxtConfig: Configuration = {
   // Disable server-side rendering: https://go.nuxtjs.dev/ssr-mode
   ssr: false,
+  router: {
+    base: '/plandy/'
+  },
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
     title: 'plandy',
     htmlAttrs: {
       lang: 'ja',
+    },
+    base: {
+      href: 'router.base'
     },
     meta: [
       { charset: 'utf-8' },
@@ -39,14 +45,14 @@ const nuxtConfig: Configuration = {
   buildModules: [
     // https://go.nuxtjs.dev/typescript
     '@nuxt/typescript-build',
-    '@nuxtjs/vuetify',
+    // '@nuxtjs/vuetify',
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
   modules: [
     // https://go.nuxtjs.dev/axios
     '@nuxtjs/axios',
-    '@nuxtjs/vuetify'
+    // '@nuxtjs/vuetify'
   ],
 
   // Axios module configuration: https://go.nuxtjs.dev/config-axios
@@ -59,6 +65,7 @@ const nuxtConfig: Configuration = {
     //   app: ({ isDev }) => isDev ? '[name].[hash].js' : '[chunkhash].js',
     //   chunk: ({ isDev }) => isDev ? '[name].[hash].js' : '[chunkhash].js'
     // },
+    publicPath: './',
     loaders: {
       // SCSSを扱う.
       scss: {
