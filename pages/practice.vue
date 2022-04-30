@@ -3,7 +3,6 @@
     <v-app>
     <v-row class="mx-3 mt-5" justify="start">
       <v-col cols="12" sm="12" md="4" lg="4" xl="3">
-        
         <v-text-field
           label="目的地"
           outlined
@@ -163,6 +162,9 @@
       <div class="pa-1">
         <v-btn @click="deleteAllLocalStrage">ローカルストレージ全部削除</v-btn>
       </div>
+      <div class="pa-1">
+        <v-btn @click="sendmail">メール送信テスト</v-btn>
+      </div>
       <div>
           <v-snackbar
             v-model="addDateSnackbar"
@@ -197,12 +199,14 @@
         <div class="text-center">
           <v-dialog
             v-model="dialog"
-            width="700"
+            width="800"
+            scrollable
           >
             <v-card>
               <v-card-title class="headline grey lighten-2">
                 {{selectedPlace.dateSpot.title}}
               </v-card-title>
+              
               <v-carousel v-model="dataspotCarruselModel">
                 <v-carousel-item
                   v-for="(color, i) in colors"
@@ -217,31 +221,36 @@
                       align="center"
                       justify="center"
                     >
-                      <div>
-                        <v-img
-                          v-if="selectedPlace.dateSpot.photos[i]"
-                          :lazy-src="selectedPlace.dateSpot.photos[i]"
-                          :src="selectedPlace.dateSpot.photos[i]"
-                        ></v-img>
-                      </div>
+                      
+                    <v-img
+                      v-if="selectedPlace.dateSpot.photos[i]"
+                      :lazy-src="selectedPlace.dateSpot.photos[i]"
+                      :src="selectedPlace.dateSpot.photos[i]"
+                      aspect-ratio="1.7"
+                      contain
+                    ></v-img>
+                      
                     </v-row>
                   </v-sheet>
                 </v-carousel-item>
               </v-carousel>
-              <v-card-text class="font-weight-bold mt-3">価格帯
-                <p>{{selectedPlace.dateSpot.priceLevel}}</p>
-                <v-icon>fas fa-yen-sign</v-icon>
-              </v-card-text>
-              <v-card-text class="font-weight-bold">総評価
+              
+              <v-card-text class="font-weight-bold mt-3" style="height: 500px;">価格
+                <b v-if="selectedPlace.dateSpot.priceLevel == '' || selectedPlace.dateSpot.priceLevel == undefined">データなし</b>
+                <v-icon
+                  v-for="n in selectedPlace.dateSpot.priceLevel"
+                  :key="n"
+                  large
+                  color="green darken-2"
+                  >mdi-currency-jpy</v-icon>
                 <star-rating 
                   v-model="selectedPlace.dateSpot.rating"
                   active-color="#f00"
                   v-bind:star-size="35">
                 </star-rating>
-              </v-card-text>      
                 <v-card
-                  v-for="(review, index) in selectedPlace.dateSpot.reviews"
-                  :key="index"
+                  v-for="review in selectedPlace.dateSpot.reviews"
+                  :key="review.text"
                   class="mx-auto"
                 >
                   <v-card-text>
@@ -259,6 +268,8 @@
                     </div>
                   </v-card-text>
                 </v-card>
+              </v-card-text>      
+
               <!-- hamada bak phones[]にきちんと格納できていないかもしれないので -->
               <!-- <v-img
                 v-if="selectedPlace.dateSpot.photos[0]"
@@ -281,6 +292,7 @@
                 >
                   デートに追加する
                 </v-btn>
+
                 <v-btn
                   v-if="selectedFlag"
                   color="error"
@@ -300,7 +312,6 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
-          
         </div>
       </v-app>
     </v-app>
@@ -320,6 +331,7 @@ const testIcon1 = require('../assets/img/testimonials-1.jpg');
 const testIcon2 = require('../assets/img/testimonials-2.jpg');
 const testIcon3 = require('../assets/img/testimonials-3.jpg');
 
+// const NodeMailer = require('nodemailer')
 
 interface Data {
   maplocation: {lng: number, lat: number}
@@ -1153,7 +1165,42 @@ console.log('lat, lng', this.maplocation.lat, this.maplocation.lng);
     deleteAllLocalStrage() {
       localStorage.clear(); // ストレージ全て消す
       location.reload(); // 地図に反映させる為にリロード
-    }
+    },
+    sendmail() {
+      // SMTPサーバの情報をまとめる
+      // SMTP情報を格納（Gmailの場合）
+      // const smtpData = {
+      //   host: 'smtp.gmail.com', // Gmailのサーバ
+      //   port: '465',            // Gmailの場合　SSL: 465 / TLS: 587
+      //   secure: true,           // true = SSL
+      //   auth: {
+      //     user: 'harumakikk@gmail.com',  // メールアドレス（自身のアドレスを指定）
+      //     pass: 'GGuasheifsa123'            // パスワード（自身のパスワードを指定）
+      //   }
+      // }
+
+      // 送信内容を作成
+      // const mailData = {
+      //   from: '"テストユーザ" <' + smtpData.auth.user + '>', // 送信元名
+      //   to: 'jobs1050102@gmail',                         // 送信先
+      //   subject: 'こんにちは',                               // 件名
+      //   text: 'お元気ですか？',                              // 通常のメール本文
+      //   html: '<b>お元気ですか？</b>',                       // HTMLメール
+      // }
+
+      // const transporter = NodeMailer.createTransport(smtpData)
+
+      // メール送信
+      // transporter.sendMail(mailData, function (error:any, info:any) {
+      //   if (error) {
+      //     // エラー処理
+      //     console.log(error)
+      //   } else {
+      //     // 送信時処理
+      //     console.log('Email sent: ' + info.response)
+      //   }
+      // })
+    },
   }
 })
 </script>
