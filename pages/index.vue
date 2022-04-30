@@ -173,9 +173,6 @@ import StarRating from "vue-star-rating";
 document.addEventListener("touchstart", function () {}, { passive: true });
 
 const defaultIcon = require("../assets/icon/places_21753.png");
-const testIcon1 = require("../assets/img/testimonials-1.jpg");
-const testIcon2 = require("../assets/img/testimonials-2.jpg");
-const testIcon3 = require("../assets/img/testimonials-3.jpg");
 
 interface Data {
   maplocation: { lng: number; lat: number };
@@ -199,43 +196,23 @@ interface Data {
     };
     destination: boolean;
   }[];
-  markersSub: [];
-  infoOptions: {
-    // minWidth: number,
-    pixelOffset: {
-      width: number;
-      height: number;
-    };
-  };
-  infoWindowPos: any;
-  infoWinOpen: boolean;
   marker: {};
   geocoder: {};
-  starrating: number;
   address: string;
   latitude: number;
   longitude: number;
   search: string;
-  searchKeyword: string;
-  placesList: string[];
   map: any;
   dateSpots: { id: string; title: string }[];
   lat: any;
   lng: any;
-  balloon: { position: number };
   id: number;
-  directionsMsg: string;
   destination: string;
-  spotTypeList: { ja: string; en: string }[];
-  dateSpotCategory: string;
+  searchDateSpotCategory: { feeling: string; searchCategory: string[] }[]; // TODO ここに気持ちに対応するカテゴリーを入れる
   keyword: string;
-  minPrice: string;
-  maxPrice: string;
-  priceItems: string[];
   DS: any;
   DR: any;
   waypoints: { location: { lat: number; lng: number } }[];
-  circleInstance: {};
   dialog: boolean;
   //selectedPlace:{index:number, id: string, title: string, photos:string[], priceLevel:number ,rating:number},
   selectedPlace: {
@@ -250,23 +227,12 @@ interface Data {
       reviews: {}[];
     };
   };
-  selectedFlag: boolean; //選択したスポットがデートリストにあるか? true:ある false:ない
-  iconArrayNumber: string[];
   iconDefault: string;
   iconNum: number;
   dataspotCarruselModel: number;
   colors: string[];
   dialogShow: boolean;
-  lastDestination: string;
-  waypointsName: string[];
-  dateItems: { time: string; name: string }[];
-  testPic: string[];
-  multiLine: boolean;
-  addDateSnackbar: boolean;
-  removeDateSnackbar: boolean;
-  snackbarText: object;
   dateSpotsItems:object[];
-  circle: object;
 }
 
 export default Vue.extend({
@@ -284,90 +250,24 @@ export default Vue.extend({
         styles: [],
       },
       markers: [],
-      starrating: 0,
-      markersSub: [],
-      infoOptions: {
-        // minWidth: 200,
-        pixelOffset: {
-          width: 0,
-          height: -35,
-        },
-      },
-      infoWindowPos: null,
-      infoWinOpen: false,
       marker: {},
       geocoder: {},
       address: "",
-
       latitude: 0,
       longitude: 0,
-
       dateSpots: [],
       search: "",
-      searchKeyword: "",
-      placesList: [],
       map: null,
       lat: "",
       lng: "",
-      balloon: { position: 100 },
       id: 4,
-      directionsMsg: "",
       destination: "",
-      spotTypeList: [
-        {
-          ja: "飲食店",
-          en: "restaurant",
-        },
-        {
-          ja: "遊園地",
-          en: "amusement_park",
-        },
-        {
-          ja: "水族館",
-          en: "aquarium",
-        },
-        {
-          ja: "美術館",
-          en: "museum",
-        },
-        {
-          ja: "バー",
-          en: "bar",
-        },
-        {
-          ja: "カフェ",
-          en: "cafe",
-        },
-        {
-          ja: "宿泊",
-          en: "lodging",
-        },
-        {
-          ja: "映画館",
-          en: "museum",
-        },
-        {
-          ja: "公園",
-          en: "park",
-        },
-        {
-          ja: "ショッピングモール",
-          en: "shopping_mall",
-        },
-        {
-          ja: "動物園",
-          en: "zoo",
-        },
-      ],
-      dateSpotCategory: "",
+
+      searchDateSpotCategory: [],
       keyword: "",
-      minPrice: "0", //hamada google側の料金は0~4段階で分けられているのでminの初期値は0, maxの初期値は4にしてユーザーが検索の際に料金指定をしなければ全ての料金の範囲の検索をリクエストできるようにする
-      maxPrice: "4",
-      priceItems: ["0", "1", "2", "3", "4"],
       DS: "",
       DR: "",
       waypoints: [],
-      circleInstance: {},
       dialog: false,
       selectedPlace: {
         index: 0,
@@ -381,40 +281,11 @@ export default Vue.extend({
           reviews: [],
         },
       },
-      selectedFlag: false,
-      iconArrayNumber: [
-        "https://maps.google.com/mapfiles/kml/paddle/1.png",
-        "https://maps.google.com/mapfiles/kml/paddle/2.png",
-        "https://maps.google.com/mapfiles/kml/paddle/3.png",
-        "https://maps.google.com/mapfiles/kml/paddle/4.png",
-        "https://maps.google.com/mapfiles/kml/paddle/5.png",
-        "https://maps.google.com/mapfiles/kml/paddle/6.png",
-        "https://maps.google.com/mapfiles/kml/paddle/7.png",
-        "https://maps.google.com/mapfiles/kml/paddle/8.png",
-        "https://maps.google.com/mapfiles/kml/paddle/9.png",
-        "https://maps.google.com/mapfiles/kml/paddle/10.png",
-      ],
       iconDefault: defaultIcon,
       iconNum: 0,
       dataspotCarruselModel: 0,
       colors: ["primary", "secondary", "yellow darken-2", "red", "orange"],
       dialogShow: false,
-      lastDestination: "",
-      waypointsName: [],
-      dateItems: [
-        // {time: '10:00', name:'hogehoge', categoryNo:'1'},
-        // {time: '11:00', name:'hogehoge', categoryNo:'2'},
-        // {time: '12:00', name:'hogehoge', categoryNo:'3'}
-      ],
-      testPic: [testIcon1, testIcon2],
-      multiLine: true,
-      addDateSnackbar: false,
-      removeDateSnackbar: false,
-      snackbarText: {
-        success: "デートを追加しました",
-        remove: "デートを削除しました",
-      },
-      circle:{},
     };
     
   },
@@ -425,7 +296,6 @@ export default Vue.extend({
   async created() {},
   async mounted() {
     if (navigator.geolocation) {
-      // let _this = this
       navigator.geolocation.getCurrentPosition(
         function (this: any, position: any) {
           console.log("position", position);
@@ -469,14 +339,12 @@ export default Vue.extend({
             let maps = (this as any).$refs.mapRef.$mapObject;
 
             let placeService = new google.maps.places.PlacesService(maps);
-            console.log("hamda max price", _this.maxPrice);
-            console.log("hamda min price", _this.minPrice);
             // hamada nearbySearch公式ドキュメント https://developers.google.com/maps/documentation/places/web-service/search-nearby#maps_http_places_nearbysearch-txt
             placeService.nearbySearch(
               {
                 location: new google.maps.LatLng(this.lat, this.lng),
-                radius: "550", // TODO radius:'1000'に設定すると想定する距離(半径1000m)よりも広い距離を対象に検索してしまう課題が未解決。'550'にすると想定する半径1000mに近しくなるので暫定的に対応。調べたけど不明。
-                type: _this.dateSpotCategory,
+                radius: "550",
+                type: _this.searchDateSpotCategory,
                 keyword: _this.keyword,
                 // TODO maxpriceとminpriceをパラメーターにつけてリクエストしているけどフィルターされない。以下参考URL
                 //https://developers.google.com/maps/documentation/places/web-service/search-nearby#maxprice
@@ -585,26 +453,7 @@ export default Vue.extend({
         } else {
           destination = { lat: m.position.lat, lng: m.position.lng };
         }
-        //クリックしたところがすでに押されてるか確認
-        let trueOrfalse: boolean = false;
-        for (let i = 0; i < _this.waypoints.length; i++) {
-          let latBoolean = this.waypoints[i].location.lat === destination.lat;
-          let lngBoolean = this.waypoints[i].location.lng === destination.lng;
-          if (latBoolean === true && lngBoolean === true) {
-            trueOrfalse = true;
-          }
-        }
-        console.log("el.name", m.title);
-        // hamada bak デートから削除
-        // _this.dateItems = _this.dateItems.filter(el => el.name !== m.title)
-        //クリックした場所がwaypointsにあったら別処理
-        // hamada クリックした箇所が同じところか？ true:同じところ false:違うところ
-        if (trueOrfalse) {
-          //デートにあるところがクリックされた時
-          this.selectedFlag = true; // デートスポットにある
-        } else {
-          this.selectedFlag = false; //デートスポットにない
-        }
+
         this.dialog = true;
         this.dialogShow = true;
 
