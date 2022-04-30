@@ -27,6 +27,9 @@
           <v-btn class="green white--text" @click="searchDatespot" x-large
             >検索</v-btn
           >
+          <v-btn class="blue white--text ml-5" @click="autoForm" x-large
+            >開発用:自動入力</v-btn
+          >
         </v-col>
       </v-row>
       <v-row>
@@ -41,12 +44,12 @@
             id="map"
           >
             <GmapMarker
-              v-for="(marker, index) in markers"
+              v-for="marker in markers"
               v-bind:key="marker.id"
               :position="marker.position"
               :clickable="true"
               :draggable="false"
-              @click="onClickMarker(index, marker)"
+              @click="selectDateSpot(marker.id, marker.title)"
               :icon="{
                 url: marker.icon.url,
                 origin: marker.icon.origin,
@@ -59,24 +62,36 @@
       </v-row>
 
       <!-- 検索結果 -->
-      <v-list three-line>
-        <!-- <v-divider :inset="true" :key="dateSpot.place_id"> </v-divider> -->
+      <v-list flat class="mx-sm-15">
+        <v-list-item-group
+        v-model="selectedItem"
+        color="primary"
+      >
         <v-list-item
-          :key="dateSpot.place_id"
+          :key="dateSpot.id"
           v-for="dateSpot in dateSpotsItems"
+          @click="selectDateSpot(dateSpot.id, dateSpot.name)"
         >
+          
           <v-list-item-avatar>
-            <!-- <v-img :src="dateSpots.avatar"></v-img> -->
+            <v-img :src="dateSpot.icon"></v-img>
           </v-list-item-avatar>
 
           <v-list-item-content>
             <v-list-item-title>{{ dateSpot.name }}</v-list-item-title>
             <v-list-item-subtitle>
-              <p>評価:{{ dateSpot.rating }}</p> 
+              <star-rating
+                      v-model="dateSpot.rating"
+                      active-color="#f00"
+                      v-bind:star-size="10"
+                    >
+                    </star-rating>
               <p>タイプ:{{dateSpot.types.join()}}</p>
               </v-list-item-subtitle>
+              <v-divider></v-divider>
           </v-list-item-content>
         </v-list-item>
+        </v-list-item-group>
       </v-list>
 
       <!-- ポップアップ -->
@@ -233,6 +248,7 @@ interface Data {
   colors: string[];
   dialogShow: boolean;
   dateSpotsItems: object[];
+  selectedItem: number;
 }
 
 export default Vue.extend({
@@ -286,6 +302,7 @@ export default Vue.extend({
       dataspotCarruselModel: 0,
       colors: ["primary", "secondary", "yellow darken-2", "red", "orange"],
       dialogShow: false,
+      selectedItem:1
     };
   },
   components: {
@@ -322,6 +339,11 @@ export default Vue.extend({
       console.log(this.dialog);
       this.dialog = !this.dialog;
     },
+    autoForm(){
+      this.destination = "東京";
+      this.keyword = "すし";
+      this.searchDatespot();
+    },
     searchDatespot() {
       let geocoder = new google.maps.Geocoder();
       let _this = this;
@@ -349,6 +371,11 @@ export default Vue.extend({
               function (this: any, results: any, status: any) {
                 if (status == google.maps.places.PlacesServiceStatus.OK) {
                   console.log("searchDatespotu result", results);
+                  
+                  
+                  // 前回の検索結果情報をクリア
+                  this.markers = [];
+                  this.dateSpotsItems = [];
 
                   // 検索結果のうち、必要な項目のみをデートスポットに追加 (error: open_now is deprecated 回避のため )
                   results.forEach((place: any) => {
@@ -356,12 +383,11 @@ export default Vue.extend({
                       id: place.place_id,
                       name: place.name,
                       rating: place.rating,
-                      types: place.types
+                      types: place.types,
+                      icon: place.photos[0].getUrl({ maxWidth: 640 })
                     })
                   })
 
-                  // 前回のマーカーをクリア
-                  this.markers = [];
 
                   results.forEach((place: any) => {
                     let icon = {
@@ -388,7 +414,6 @@ export default Vue.extend({
                     };
                     this.markers.push(maker);
                   });
-
                   this.setCircle();
                 }
               }.bind(this)
@@ -414,61 +439,20 @@ export default Vue.extend({
 
       new google.maps.Circle(googleCircleOptions);
     },
-    onClickMarker(
-      index: number,
-      m: {
-        id: string;
-        title: string;
-        position: { lat: () => number; lng: () => number };
-        photos: string[];
-        priceLevel: number;
-        rating: number;
-      }
-    ): void {
-      console.log("m", m);
-
-      if (this.iconNum >= 10) {
-        console.log("10個以上はだめ！！");
-        return undefined;
-      }
-      let _this = this;
-
-      if (this.DR === null) {
-        this.DR = new google.maps.DirectionsRenderer();
-      }
-      //m取れてるか確認
-      if (m) {
-        console.log("m.photos", m.photos);
-        this.selectedPlace.dateSpot.id = m.id;
-        this.selectedPlace.dateSpot.title = m.title;
-        this.selectedPlace.dateSpot.photos = m.photos;
-        // this.selectedPlace.dateSpot.priceLevel = m.priceLevel;
-        // this.selectedPlace.dateSpot.rating = m.rating;
-        this.selectedPlace.dateSpot.position.lat = m.position.lat;
-        this.selectedPlace.dateSpot.position.lng = m.position.lng;
-        console.log("this.photos", this.selectedPlace.dateSpot.photos);
-        console.log("this.selectedPlace.dateSpot", this.selectedPlace.dateSpot);
-
-        let destination: any;
-        if (
-          typeof m.position.lat === "function" &&
-          typeof m.position.lng === "function"
-        ) {
-          console.log("funciton??");
-          destination = { lat: m.position.lat(), lng: m.position.lng() };
-        } else {
-          destination = { lat: m.position.lat, lng: m.position.lng };
-        }
-
+    selectDateSpot( placeId: number , placeName: string): void {
+      
         this.dialog = true;
         this.dialogShow = true;
+        
+        // nearBySearchで取得できた情報は利用する (ポップアップ表示の際に店名などの崩れを防ぐため)
+        this.selectedPlace.dateSpot.title = placeName;
 
         // 場所の詳細情報を取得
         let map = (this as any).$refs.mapRef.$mapObject;
         let placeService = new google.maps.places.PlacesService(map);
         // インスタンスを作成してplace_detailsを呼び出してcallバックの中で写真をthis.selectedPlacePhotosの中に入れればOK
         var request = {
-          placeId: this.selectedPlace.dateSpot.id,
+          placeId: placeId,
           fields: [
             "name",
             "rating",
@@ -482,30 +466,24 @@ export default Vue.extend({
 
         placeService.getDetails(
           request,
-          function (this: any, results: any, status: any) {
+          function (this: any, result: any, status: any) {
             if (status == google.maps.places.PlacesServiceStatus.OK) {
-              console.log("place details results", results);
+              console.log("place details results", result);
               let urlArray = new Array();
-              results.photos.forEach(function (photoInfo: any) {
-                // console.log(value);
+              result.photos.forEach(function (photoInfo: any) {
                 let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
                 urlArray.push(imgUrl);
-                // console.log("urlArray", urlArray)
               });
+              
+              this.selectedPlace.dateSpot.title = result.name;
               this.selectedPlace.dateSpot.photos = urlArray;
-              this.selectedPlace.dateSpot.priceLevel = results.price_level;
-              this.selectedPlace.dateSpot.rating = results.rating;
-              this.selectedPlace.dateSpot.reviews = results.reviews;
-              //sss
-              //TODO shopDatailsの中からrating,website,reviewsを抽出してモーダルに出力する
-              // TODO selectedPlaceの処理に無駄があるので整理する
+              this.selectedPlace.dateSpot.priceLevel = result.price_level;
+              this.selectedPlace.dateSpot.rating = result.rating;
+              this.selectedPlace.dateSpot.reviews = result.reviews;
             }
           }.bind(this)
-        );
-      } else {
-        console.log("値取れてないよ～");
+        )
       }
-    },
   },
 });
 </script>
