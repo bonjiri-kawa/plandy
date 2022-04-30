@@ -16,10 +16,17 @@
             v-model="keyword"
           ></v-text-field>
         </v-col>
-        <v-col cols="12" sm="12" md="12" lg="4" xl="3"  class="d-flex lg-justify-center">
-            <v-btn class="green white--text" @click="searchDatespot" x-large
-              >検索</v-btn
-            >
+        <v-col
+          cols="12"
+          sm="12"
+          md="12"
+          lg="4"
+          xl="3"
+          class="d-flex lg-justify-center"
+        >
+          <v-btn class="green white--text" @click="searchDatespot" x-large
+            >検索</v-btn
+          >
         </v-col>
       </v-row>
       <v-row>
@@ -49,36 +56,29 @@
             />
           </GmapMap>
         </v-col>
-
       </v-row>
-            
-        <!-- 検索結果 -->
-        <v-list three-line>
-      <template v-for="(dateSpots, index) in dateSpotsItems"> -->
-        <v-subheader
-          v-if="dateSpots.header"
-          :key="dateSpots.header"
-          v-text="dateSpots.header"
-        ></v-subheader>
-        <v-divider :inset="true" :key="index"> </v-divider>
 
+      <!-- 検索結果 -->
+      <v-list three-line>
+        <!-- <v-divider :inset="true" :key="dateSpot.place_id"> </v-divider> -->
         <v-list-item
-          :key="index"
+          :key="dateSpot.place_id"
+          v-for="dateSpot in dateSpotsItems"
         >
           <v-list-item-avatar>
-            <v-img :src="dateSpots.avatar"></v-img> -->
+            <!-- <v-img :src="dateSpots.avatar"></v-img> -->
           </v-list-item-avatar>
 
-          <v-list-item-content :key="index">
-            <v-list-item-title v-html="dateSpots.name"></v-list-item-title>
+          <v-list-item-content>
+            <v-list-item-title>{{ dateSpot.name }}</v-list-item-title>
             <v-list-item-subtitle>
-              <p>評価:{{dateSpots.rating}}, 住所:{{dateSpots.vicinity}}, タイプ:{{dateSpots.types}}</p>
-            </v-list-item-subtitle>
+              <p>評価:{{ dateSpot.rating }}</p> 
+              <p>タイプ:{{dateSpot.types.join()}}</p>
+              </v-list-item-subtitle>
           </v-list-item-content>
         </v-list-item>
-      </template>
-    </v-list>
-    
+      </v-list>
+
       <!-- ポップアップ -->
       <v-app id="inspire" v-show="dialogShow">
         <div class="text-center">
@@ -232,7 +232,7 @@ interface Data {
   dataspotCarruselModel: number;
   colors: string[];
   dialogShow: boolean;
-  dateSpotsItems:object[];
+  dateSpotsItems: object[];
 }
 
 export default Vue.extend({
@@ -287,7 +287,6 @@ export default Vue.extend({
       colors: ["primary", "secondary", "yellow darken-2", "red", "orange"],
       dialogShow: false,
     };
-    
   },
   components: {
     draggable,
@@ -346,16 +345,24 @@ export default Vue.extend({
                 radius: "550",
                 type: _this.searchDateSpotCategory,
                 keyword: _this.keyword,
-                // TODO maxpriceとminpriceをパラメーターにつけてリクエストしているけどフィルターされない。以下参考URL
-                //https://developers.google.com/maps/documentation/places/web-service/search-nearby#maxprice
-                //https://googlemaps.github.io/google-maps-services-js/modules/_places_placesnearby_.html
-                maxprice: 3,
-                minprice: 2,
               },
               function (this: any, results: any, status: any) {
                 if (status == google.maps.places.PlacesServiceStatus.OK) {
                   console.log("searchDatespotu result", results);
+
+                  // 検索結果のうち、必要な項目のみをデートスポットに追加 (error: open_now is deprecated 回避のため )
+                  results.forEach((place: any) => {
+                    this.dateSpotsItems.push({
+                      id: place.place_id,
+                      name: place.name,
+                      rating: place.rating,
+                      types: place.types
+                    })
+                  })
+
+                  // 前回のマーカーをクリア
                   this.markers = [];
+
                   results.forEach((place: any) => {
                     let icon = {
                       url: this.iconDefault,
@@ -381,7 +388,7 @@ export default Vue.extend({
                     };
                     this.markers.push(maker);
                   });
-                  
+
                   this.setCircle();
                 }
               }.bind(this)
@@ -391,10 +398,9 @@ export default Vue.extend({
       );
     },
     setCircle(): void {
-      
       let map = (this as any).$refs.mapRef.$mapObject;
-      console.log("map", map)
-      
+      console.log("map", map);
+
       let googleCircleOptions = {
         center: { lat: this.maplocation.lat, lng: this.maplocation.lng }, // 中心点(google.maps.LatLng)
         fillColor: "#CCFFFF", // 塗りつぶし色
@@ -405,7 +411,7 @@ export default Vue.extend({
         strokeOpacity: 1, // 外周透過度（0: 透明 ⇔ 1:不透明）
         strokeWeight: 1, // 外周太さ（ピクセル）
       };
-      
+
       new google.maps.Circle(googleCircleOptions);
     },
     onClickMarker(
@@ -470,7 +476,6 @@ export default Vue.extend({
             "website",
             "photos",
             "reviews",
-            "opening_hours",
             "price_level",
           ],
         };
