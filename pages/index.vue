@@ -406,7 +406,7 @@ export default Vue.extend({
                 return self.indexOf(x) === i;
               });
 
-            console.log("検索タイプ: ", searchTypeList);
+            console.log("検索タイプ一覧itiran: ", searchTypeList);
 
             // nearbySearch公式ドキュメント https://developers.google.com/maps/documentation/places/web-service/search-nearby#maps_http_places_nearbysearch-txt
             // TODO デート提案のうえで、リクエストの際に"keyword"をどう活用するか？
@@ -425,6 +425,12 @@ export default Vue.extend({
 
                   // 検索結果のうち、必要な項目のみをデートスポットに追加 (error: open_now is deprecated 回避のため )
                   results.forEach((place: any) => {
+                    
+                    // フィルター 評価数
+                    if (place.rating <= 3.0 || "rating" in place == false) {
+                      return;
+                    }
+                    
                     this.dateSpotsItems.push({
                       id: place.place_id,
                       name: place.name,
@@ -432,9 +438,7 @@ export default Vue.extend({
                       types: place.types,
                       icon: "photos" in place ? place.photos[0].getUrl({ maxWidth: 640 }) : require("../assets/img/noImage2.png"), // 写真がない場合
                     });
-                  });
-
-                  results.forEach((place: any) => {
+                    
                     let icon = {
                       url: this.iconDefault,
                       scaledSize: new google.maps.Size(30, 30), // scaled size
@@ -449,8 +453,10 @@ export default Vue.extend({
                       title: place.name,
                       destination: false,
                     };
-                    this.markers.push(maker);
+                    this.markers.push(maker);                    
+                    
                   });
+
                   this.setCircle();
                   // TODO とりあえずスクロール DOMに反映されてからじゃないとスクロールできない とりあえずsetTimeoutで...。
                   setTimeout(e => {
