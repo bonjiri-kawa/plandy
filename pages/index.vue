@@ -55,7 +55,7 @@
           >
             <GmapMarker
               v-for="marker in markers"
-              v-bind:key="marker.id"
+              :key="marker.id"
               :position="marker.position"
               :clickable="true"
               :draggable="false"
@@ -85,14 +85,23 @@
 
             <v-list-item-content>
               <v-list-item-title>{{ dateSpot.name }}</v-list-item-title>
-              <v-list-item-subtitle>
+              <v-list-item-subtitle class="my-1">
                 <star-rating
+                class="mb-1"
                   v-model="dateSpot.rating"
                   active-color="#f00"
                   v-bind:star-size="10"
                 >
                 </star-rating>
-                <p>タイプ:{{ dateSpot.types.join() }}</p>
+                
+                <v-icon
+                  v-for="type in dateSpot.types"
+                  :key="type"
+                  color="green darken-2"
+                  >{{typeIconList[type]}}</v-icon
+                >
+                <!-- TODO レスポンスの中のタイプは、リクエストとは種類が違うので対応しないといけない -->
+                <!-- <p>タイプ:{{ dateSpot.types.join() }}</p> -->
               </v-list-item-subtitle>
               <v-divider></v-divider>
             </v-list-item-content>
@@ -110,13 +119,13 @@
               </v-card-title>
 
               <v-carousel v-model="dataspotCarruselModel">
-                <v-carousel-item v-for="(color, i) in colors" :key="color">
+                <v-carousel-item v-for="(photoUrl, index) in selectedPlace.dateSpot.photos" :key="photoUrl">
                   <v-sheet height="100%" tile>
-                    <v-row class="fill-height" align="center" justify="center">
+                    <v-row class="fill-height" justify="center">
                       <v-img
-                        v-if="selectedPlace.dateSpot.photos[i]"
-                        :lazy-src="selectedPlace.dateSpot.photos[i]"
-                        :src="selectedPlace.dateSpot.photos[i]"
+                        v-if="selectedPlace.dateSpot.photos[index]"
+                        :lazy-src="selectedPlace.dateSpot.photos[index]"
+                        :src="selectedPlace.dateSpot.photos[index]"
                         aspect-ratio="1.7"
                         contain
                       ></v-img>
@@ -149,7 +158,7 @@
                 </star-rating>
                 <v-card
                   v-for="review in selectedPlace.dateSpot.reviews"
-                  :key="review.text"
+                  :key="review.time"
                   class="mx-auto"
                 >
                   <v-card-text>
@@ -191,6 +200,7 @@ declare let google: any;
 import draggable from "vuedraggable";
 import StarRating from "vue-star-rating";
 import { defaultFeelingItems } from "../assets/js/feelingItems.js";
+import { defaultTypeIcon } from "../assets/js/typeIcon.js";
 
 document.addEventListener("touchstart", function () {}, { passive: true });
 
@@ -260,6 +270,7 @@ interface Data {
   feelingItems: object[];
   selectedFeelingItems: string[];
   mapCircle: any
+  typeIconList:object
 }
 
 export default Vue.extend({
@@ -316,7 +327,8 @@ export default Vue.extend({
       selectedItem: 1,
       feelingItems: defaultFeelingItems,
       selectedFeelingItems: [],
-      mapCircle: {}
+      mapCircle: {},
+      typeIconList:defaultTypeIcon
     };
   },
   components: {
@@ -370,7 +382,7 @@ export default Vue.extend({
         });
     },
     autoForm() {
-      this.destination = "横浜";
+      this.destination = "大阪府";
       this.selectedFeelingItems = ["まったりしたい", "ワクワクしたい"];
       this.searchDatespot();
     },
@@ -408,7 +420,7 @@ export default Vue.extend({
                 return self.indexOf(x) === i;
               });
 
-            console.log("検索タイプ: ", searchTypeList);
+            console.log("検索タイプ一覧itiran: ", searchTypeList);
 
             // nearbySearch公式ドキュメント https://developers.google.com/maps/documentation/places/web-service/search-nearby#maps_http_places_nearbysearch-txt
             // TODO デート提案のうえで、リクエストの際に"keyword"をどう活用するか？
@@ -427,40 +439,38 @@ export default Vue.extend({
 
                   // 検索結果のうち、必要な項目のみをデートスポットに追加 (error: open_now is deprecated 回避のため )
                   results.forEach((place: any) => {
+                    
+                    // フィルター 評価数
+                    if (place.rating <= 3.0 || "rating" in place == false) {
+                      return;
+                    }
+                    
                     this.dateSpotsItems.push({
                       id: place.place_id,
                       name: place.name,
                       rating: place.rating,
                       types: place.types,
-                      icon: place.photos[0].getUrl({ maxWidth: 640 }),
+                      icon: "photos" in place ? place.photos[0].getUrl({ maxWidth: 640 }) : require("../assets/img/noImage2.png"), // 写真がない場合
                     });
-                  });
-
-                  results.forEach((place: any) => {
+                    
                     let icon = {
                       url: this.iconDefault,
                       scaledSize: new google.maps.Size(30, 30), // scaled size
                       origin: new google.maps.Point(0, 0), // origin
                       anchor: new google.maps.Point(15, 30),
                     };
-                    // 画像が1つしかない
-                    let urlArray = new Array();
-                    place.photos.forEach(function (photoInfo: any) {
-                      // console.log("photoInfo", photoInfo);
-                      let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
-                      urlArray.push(imgUrl);
-                      // console.log("urlArray", urlArray)
-                    });
+                    
                     let maker = {
                       position: place.geometry.location,
                       icon: icon,
                       id: place.place_id,
                       title: place.name,
-                      photos: urlArray,
                       destination: false,
                     };
-                    this.markers.push(maker);
+                    this.markers.push(maker);                    
+                    
                   });
+
                   this.setCircle();
                   // TODO とりあえずスクロール DOMに反映されてからじゃないとスクロールできない とりあえずsetTimeoutで...。
                   // setTimeout(e => {
@@ -493,8 +503,15 @@ export default Vue.extend({
       this.mapCircle = new google.maps.Circle(googleCircleOptions);
     },
     selectDateSpot(placeId: number, placeName: string): void {
+      
+      
+      
+      
       this.dialog = true;
       this.dialogShow = true;
+      
+      // 前回の表示をリセット 
+      this.selectedPlace.dateSpot.photos = []; //写真はスポットによって枚数が異なる
 
       // nearBySearchで取得できた情報は利用する (ポップアップ表示の際に店名などの崩れを防ぐため)
       this.selectedPlace.dateSpot.title = placeName;
@@ -502,7 +519,8 @@ export default Vue.extend({
       // 場所の詳細情報を取得
       let map = (this as any).$refs.mapRef.$mapObject;
       let placeService = new google.maps.places.PlacesService(map);
-      // インスタンスを作成してplace_detailsを呼び出してcallバックの中で写真をthis.selectedPlacePhotosの中に入れればOK
+      
+      // 詳細情報のリクエスト内容
       var request = {
         placeId: placeId,
         fields: [
@@ -521,14 +539,26 @@ export default Vue.extend({
         function (this: any, result: any, status: any) {
           if (status == google.maps.places.PlacesServiceStatus.OK) {
             console.log("place details results", result);
-            let urlArray = new Array();
-            result.photos.forEach(function (photoInfo: any) {
-              let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
-              urlArray.push(imgUrl);
-            });
-
+            
+            // 画像があるかを確認
+            let imgUrlArray = new Array();
+            if ("photos" in result) {
+              result.photos.forEach((photoInfo: any)  =>  {
+                let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
+                imgUrlArray.push(imgUrl);
+              });
+            }
+            else {
+              // 画像がない場合は "No Image"を表示させる
+              imgUrlArray.push(require("../assets/img/noImage.png"));
+            }
+            
             this.selectedPlace.dateSpot.title = result.name;
-            this.selectedPlace.dateSpot.photos = urlArray;
+            this.selectedPlace.dateSpot.photos = imgUrlArray;
+            console.log("写真の中身", this.selectedPlace.dateSpot.photos);
+            // "https://maps.googleapis.com/maps/api/place/js/PhotoService.GetPhoto?1sAap_uECTmWVqI2QKgilOKh0TazgFKxLVr118kv5XJ7wneMsJfstEjv3zh-mNTskH3LbhVEjj11ezI2HQogVdoREfXNjJm4IrcqJEdD3-8_mT-TQgfVsOX7e4xLz9PokWQ8cnGHJ_9EGN6mRytqTxB2WnUlpQI4BVkaO8FtraN_MwZy161Gk2&3u640&5m1&2e1&callback=none&key=AIzaSyDVsndM5LyMAb5If-6D9T2rw0myLdlC1Vk&token=39180"
+            //"https://maps.googleapis.com/maps/api/place/js/PhotoService.GetPhoto?1sAap_uECTmWVqI2QKgilOKh0TazgFKxLVr118kv5XJ7wneMsJfstEjv3zh-mNTskH3LbhVEjj11ezI2HQogVdoREfXNjJm4IrcqJEdD3-8_mT-TQgfVsOX7e4xLz9PokWQ8cnGHJ_9EGN6mRytqTxB2WnUlpQI4BVkaO8FtraN_MwZy161Gk2&3u640&5m1&2e1&callback=none&key=AIzaSyDVsndM5LyMAb5If-6D9T2rw0myLdlC1Vk&token=39180"
+            // "https://maps.googleapis.com/maps/api/place/js/PhotoService.GetPhoto?1sAap_uEB27XFrt3pgk3IvkIpp5gjgKYuOjfVU6EUHWfcYObXwxoLgJLyadtIWSYZlNWf0JuGBhmyqwatl0etW3SpsslYTuUqkYESG1YqOvU9T0E0GoK7l-P-9xLAME_uUkL0rlIHTw2CozVoOxXnvq4OK15rCoys00UOmYCA4AKkdM9ZPNIb-&3u640&5m1&2e1&callback=none&key=AIzaSyDVsndM5LyMAb5If-6D9T2rw0myLdlC1Vk&token=22972"
             this.selectedPlace.dateSpot.priceLevel = result.price_level;
             this.selectedPlace.dateSpot.rating = result.rating;
             this.selectedPlace.dateSpot.reviews = result.reviews;
