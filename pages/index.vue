@@ -119,7 +119,7 @@
                 </v-carousel-item>
               </v-carousel>
 
-              <v-card-text class="font-weight-bold mt-3" style="height: 500px"
+              <v-card-text class="text-check font-weight-bold mt-3" style="height: 500px"
                 >価格
                 <b
                   v-if="
@@ -333,6 +333,16 @@ export default Vue.extend({
       this.maplocation.lat = 35.6813092;
       this.maplocation.lng = 139.7677269;
     }
+  },
+  async updated() {
+    //dialogの中のテキストを取得。
+    const elements = document.getElementsByClassName('text-check font-weight-bold')
+    if (!elements || !elements.length) {
+    // 要素が取得できなかった場合は終了
+      return;
+    }
+    //textがあれば開くたびにスクロールをトップにする
+    elements[0].scrollTop = 0;
   },
   methods: {
     clickDialog() {
