@@ -2,18 +2,28 @@
   <div>
     <v-app>
       <v-row class="mx-3 mt-5" justify="start">
-        <v-col cols="12" sm="12" md="4" lg="4" xl="3">
-          <v-text-field
-            label="目的地"
+        <v-col cols="12" sm="4">
+          <v-select
+            v-model="selectedFeelingItems"
+            :items="feelingItems.map((item) => item.feeling)"
+            :menu-props="{ offsetY: true }"
+            label="あなたはどんなデートにしたいですか？"
+            multiple
+            hint="複数選択することもできます"
+            persistent-hint
+            chips
             outlined
-            v-model="destination"
-          ></v-text-field>
+          ></v-select>
+          <p>{{ selectedFeelingItems }}</p>
         </v-col>
         <v-col cols="12" sm="12" md="4" lg="4" xl="3">
           <v-text-field
-            label="キーワード"
+            label="デートエリア"
             outlined
-            v-model="keyword"
+            v-model="destination"
+            hint="エリア名を入力してください 例:横浜"
+            chips
+            persistent-hint
           ></v-text-field>
         </v-col>
         <v-col
@@ -63,34 +73,30 @@
 
       <!-- 検索結果 -->
       <v-list flat class="mx-sm-15">
-        <v-list-item-group
-        v-model="selectedItem"
-        color="primary"
-      >
-        <v-list-item
-          :key="dateSpot.id"
-          v-for="dateSpot in dateSpotsItems"
-          @click="selectDateSpot(dateSpot.id, dateSpot.name)"
-        >
-          
-          <v-list-item-avatar>
-            <v-img :src="dateSpot.icon"></v-img>
-          </v-list-item-avatar>
+        <v-list-item-group v-model="selectedItem" color="primary">
+          <v-list-item
+            :key="dateSpot.id"
+            v-for="dateSpot in dateSpotsItems"
+            @click="selectDateSpot(dateSpot.id, dateSpot.name)"
+          >
+            <v-list-item-avatar>
+              <v-img :src="dateSpot.icon"></v-img>
+            </v-list-item-avatar>
 
-          <v-list-item-content>
-            <v-list-item-title>{{ dateSpot.name }}</v-list-item-title>
-            <v-list-item-subtitle>
-              <star-rating
-                      v-model="dateSpot.rating"
-                      active-color="#f00"
-                      v-bind:star-size="10"
-                    >
-                    </star-rating>
-              <p>タイプ:{{dateSpot.types.join()}}</p>
+            <v-list-item-content>
+              <v-list-item-title>{{ dateSpot.name }}</v-list-item-title>
+              <v-list-item-subtitle>
+                <star-rating
+                  v-model="dateSpot.rating"
+                  active-color="#f00"
+                  v-bind:star-size="10"
+                >
+                </star-rating>
+                <p>タイプ:{{ dateSpot.types.join() }}</p>
               </v-list-item-subtitle>
               <v-divider></v-divider>
-          </v-list-item-content>
-        </v-list-item>
+            </v-list-item-content>
+          </v-list-item>
         </v-list-item-group>
       </v-list>
 
@@ -184,10 +190,12 @@ import Vue from "vue";
 declare let google: any;
 import draggable from "vuedraggable";
 import StarRating from "vue-star-rating";
+import { defaultFeelingItems } from "../assets/js/feelingItems.js";
 
 document.addEventListener("touchstart", function () {}, { passive: true });
 
 const defaultIcon = require("../assets/icon/places_21753.png");
+// const defaultFeelingItems = require("../assets/js/feelingItems.js");
 
 interface Data {
   maplocation: { lng: number; lat: number };
@@ -248,7 +256,9 @@ interface Data {
   colors: string[];
   dialogShow: boolean;
   dateSpotsItems: object[];
-  selectedItem: number;
+  selectedItem: number; // ??
+  feelingItems: object[];
+  selectedFeelingItems: string[];
 }
 
 export default Vue.extend({
@@ -302,7 +312,9 @@ export default Vue.extend({
       dataspotCarruselModel: 0,
       colors: ["primary", "secondary", "yellow darken-2", "red", "orange"],
       dialogShow: false,
-      selectedItem:1
+      selectedItem: 1,
+      feelingItems: defaultFeelingItems,
+      selectedFeelingItems: [],
     };
   },
   components: {
@@ -349,14 +361,19 @@ export default Vue.extend({
       console.log(this.dialog);
       this.dialog = !this.dialog;
     },
-    autoForm(){
-      this.destination = "東京";
-      this.keyword = "すし";
+    scrollToResult() {
+        window.scrollTo({
+          top: 700,
+          behavior: "smooth",
+        });
+    },
+    autoForm() {
+      this.destination = "横浜";
+      this.selectedFeelingItems = ["まったりしたい", "ワクワクしたい"];
       this.searchDatespot();
     },
     searchDatespot() {
       let geocoder = new google.maps.Geocoder();
-      let _this = this;
       geocoder.geocode(
         { address: this.destination, language: "ja" },
         function (this: any, results: any, status: any) {
@@ -367,22 +384,41 @@ export default Vue.extend({
             this.lng = Number(Arrayltlg[1]);
             this.maplocation.lat = this.lat;
             this.maplocation.lng = this.lng;
-            let maps = (this as any).$refs.mapRef.$mapObject;
 
+            let maps = (this as any).$refs.mapRef.$mapObject;
             let placeService = new google.maps.places.PlacesService(maps);
-            // hamada nearbySearch公式ドキュメント https://developers.google.com/maps/documentation/places/web-service/search-nearby#maps_http_places_nearbysearch-txt
+
+            // 検索するタイプを選択
+            let searchTypeList = this.feelingItems
+              .filter((item: { feeling: string }) => {
+                return this.selectedFeelingItems.some(
+                  (selectedItemFeeling: string) => {
+                    return selectedItemFeeling === item.feeling;
+                  }
+                );
+              })
+              .map((item: { keyword: string }) => item.keyword);
+
+            // 重複を削除
+            searchTypeList = searchTypeList
+              .flat()
+              .filter((x: any, i: any, self: string | any[]) => {
+                return self.indexOf(x) === i;
+              });
+
+            console.log("検索タイプ: ", searchTypeList);
+
+            // nearbySearch公式ドキュメント https://developers.google.com/maps/documentation/places/web-service/search-nearby#maps_http_places_nearbysearch-txt
+            // TODO デート提案のうえで、リクエストの際に"keyword"をどう活用するか？
             placeService.nearbySearch(
               {
                 location: new google.maps.LatLng(this.lat, this.lng),
                 radius: "550",
-                type: _this.searchDateSpotCategory,
-                keyword: _this.keyword,
+                type: searchTypeList,
               },
               function (this: any, results: any, status: any) {
+                console.log("searchDatespotu result", results);
                 if (status == google.maps.places.PlacesServiceStatus.OK) {
-                  console.log("searchDatespotu result", results);
-                  
-                  
                   // 前回の検索結果情報をクリア
                   this.markers = [];
                   this.dateSpotsItems = [];
@@ -394,10 +430,9 @@ export default Vue.extend({
                       name: place.name,
                       rating: place.rating,
                       types: place.types,
-                      icon: place.photos[0].getUrl({ maxWidth: 640 })
-                    })
-                  })
-
+                      icon: place.photos[0].getUrl({ maxWidth: 640 }),
+                    });
+                  });
 
                   results.forEach((place: any) => {
                     let icon = {
@@ -425,6 +460,11 @@ export default Vue.extend({
                     this.markers.push(maker);
                   });
                   this.setCircle();
+                  // TODO とりあえずスクロール DOMに反映されてからじゃないとスクロールできない とりあえずsetTimeoutで...。
+                  setTimeout(e => {
+                    this.scrollToResult();
+                  },1000);
+
                 }
               }.bind(this)
             );
@@ -449,51 +489,50 @@ export default Vue.extend({
 
       new google.maps.Circle(googleCircleOptions);
     },
-    selectDateSpot( placeId: number , placeName: string): void {
-      
-        this.dialog = true;
-        this.dialogShow = true;
-        
-        // nearBySearchで取得できた情報は利用する (ポップアップ表示の際に店名などの崩れを防ぐため)
-        this.selectedPlace.dateSpot.title = placeName;
+    selectDateSpot(placeId: number, placeName: string): void {
+      this.dialog = true;
+      this.dialogShow = true;
 
-        // 場所の詳細情報を取得
-        let map = (this as any).$refs.mapRef.$mapObject;
-        let placeService = new google.maps.places.PlacesService(map);
-        // インスタンスを作成してplace_detailsを呼び出してcallバックの中で写真をthis.selectedPlacePhotosの中に入れればOK
-        var request = {
-          placeId: placeId,
-          fields: [
-            "name",
-            "rating",
-            "formatted_phone_number",
-            "website",
-            "photos",
-            "reviews",
-            "price_level",
-          ],
-        };
+      // nearBySearchで取得できた情報は利用する (ポップアップ表示の際に店名などの崩れを防ぐため)
+      this.selectedPlace.dateSpot.title = placeName;
 
-        placeService.getDetails(
-          request,
-          function (this: any, result: any, status: any) {
-            if (status == google.maps.places.PlacesServiceStatus.OK) {
-              console.log("place details results", result);
-              let urlArray = new Array();
-              result.photos.forEach(function (photoInfo: any) {
-                let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
-                urlArray.push(imgUrl);
-              });
-              
-              this.selectedPlace.dateSpot.title = result.name;
-              this.selectedPlace.dateSpot.photos = urlArray;
-              this.selectedPlace.dateSpot.priceLevel = result.price_level;
-              this.selectedPlace.dateSpot.rating = result.rating;
-              this.selectedPlace.dateSpot.reviews = result.reviews;
-            }
-          }.bind(this)
-        )
-      }
+      // 場所の詳細情報を取得
+      let map = (this as any).$refs.mapRef.$mapObject;
+      let placeService = new google.maps.places.PlacesService(map);
+      // インスタンスを作成してplace_detailsを呼び出してcallバックの中で写真をthis.selectedPlacePhotosの中に入れればOK
+      var request = {
+        placeId: placeId,
+        fields: [
+          "name",
+          "rating",
+          "formatted_phone_number",
+          "website",
+          "photos",
+          "reviews",
+          "price_level",
+        ],
+      };
+
+      placeService.getDetails(
+        request,
+        function (this: any, result: any, status: any) {
+          if (status == google.maps.places.PlacesServiceStatus.OK) {
+            console.log("place details results", result);
+            let urlArray = new Array();
+            result.photos.forEach(function (photoInfo: any) {
+              let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
+              urlArray.push(imgUrl);
+            });
+
+            this.selectedPlace.dateSpot.title = result.name;
+            this.selectedPlace.dateSpot.photos = urlArray;
+            this.selectedPlace.dateSpot.priceLevel = result.price_level;
+            this.selectedPlace.dateSpot.rating = result.rating;
+            this.selectedPlace.dateSpot.reviews = result.reviews;
+          }
+        }.bind(this)
+      );
+    },
   },
 });
 </script>
