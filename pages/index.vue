@@ -269,7 +269,8 @@ interface Data {
   selectedItem: number; // ??
   feelingItems: object[];
   selectedFeelingItems: string[];
-  typeIconList:object
+  typeIconList:object,
+  mapCircle: any
 }
 
 export default Vue.extend({
@@ -326,7 +327,8 @@ export default Vue.extend({
       selectedItem: 1,
       feelingItems: defaultFeelingItems,
       selectedFeelingItems: [],
-      typeIconList:defaultTypeIcon
+      typeIconList:defaultTypeIcon,
+      mapCircle: {}
     };
   },
   components: {
@@ -471,9 +473,9 @@ export default Vue.extend({
 
                   this.setCircle();
                   // TODO とりあえずスクロール DOMに反映されてからじゃないとスクロールできない とりあえずsetTimeoutで...。
-                  setTimeout(e => {
-                    this.scrollToResult();
-                  },1000);
+                  // setTimeout(e => {
+                  //   this.scrollToResult();
+                  // },1000);
 
                 }
               }.bind(this)
@@ -486,6 +488,10 @@ export default Vue.extend({
       let map = (this as any).$refs.mapRef.$mapObject;
       console.log("map", map);
 
+      if(Object.keys(this.mapCircle).length) {
+        this.mapCircle.setMap(null);
+      }
+
       let googleCircleOptions = {
         center: { lat: this.maplocation.lat, lng: this.maplocation.lng }, // 中心点(google.maps.LatLng)
         fillColor: "#CCFFFF", // 塗りつぶし色
@@ -496,8 +502,7 @@ export default Vue.extend({
         strokeOpacity: 1, // 外周透過度（0: 透明 ⇔ 1:不透明）
         strokeWeight: 1, // 外周太さ（ピクセル）
       };
-
-      new google.maps.Circle(googleCircleOptions);
+      this.mapCircle = new google.maps.Circle(googleCircleOptions);
     },
     selectDateSpot(placeId: number, placeName: string): void {
       
