@@ -55,7 +55,7 @@
           >
             <GmapMarker
               v-for="marker in markers"
-              v-bind:key="marker.id"
+              :key="marker.id"
               :position="marker.position"
               :clickable="true"
               :draggable="false"
@@ -110,13 +110,13 @@
               </v-card-title>
 
               <v-carousel v-model="dataspotCarruselModel">
-                <v-carousel-item v-for="(color, i) in colors" :key="color">
+                <v-carousel-item v-for="(photoUrl, index) in selectedPlace.dateSpot.photos" :key="photoUrl">
                   <v-sheet height="100%" tile>
-                    <v-row class="fill-height" align="center" justify="center">
+                    <v-row class="fill-height" justify="center">
                       <v-img
-                        v-if="selectedPlace.dateSpot.photos[i]"
-                        :lazy-src="selectedPlace.dateSpot.photos[i]"
-                        :src="selectedPlace.dateSpot.photos[i]"
+                        v-if="selectedPlace.dateSpot.photos[index]"
+                        :lazy-src="selectedPlace.dateSpot.photos[index]"
+                        :src="selectedPlace.dateSpot.photos[index]"
                         aspect-ratio="1.7"
                         contain
                       ></v-img>
@@ -149,7 +149,7 @@
                 </star-rating>
                 <v-card
                   v-for="review in selectedPlace.dateSpot.reviews"
-                  :key="review.text"
+                  :key="review.time"
                   class="mx-auto"
                 >
                   <v-card-text>
@@ -368,7 +368,7 @@ export default Vue.extend({
         });
     },
     autoForm() {
-      this.destination = "横浜";
+      this.destination = "大阪府";
       this.selectedFeelingItems = ["まったりしたい", "ワクワクしたい"];
       this.searchDatespot();
     },
@@ -430,7 +430,7 @@ export default Vue.extend({
                       name: place.name,
                       rating: place.rating,
                       types: place.types,
-                      icon: place.photos[0].getUrl({ maxWidth: 640 }),
+                      icon: "photos" in place ? place.photos[0].getUrl({ maxWidth: 640 }) : require("../assets/img/noImage2.png"), // 写真がない場合
                     });
                   });
 
@@ -441,20 +441,12 @@ export default Vue.extend({
                       origin: new google.maps.Point(0, 0), // origin
                       anchor: new google.maps.Point(15, 30),
                     };
-                    // 画像が1つしかない
-                    let urlArray = new Array();
-                    place.photos.forEach(function (photoInfo: any) {
-                      // console.log("photoInfo", photoInfo);
-                      let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
-                      urlArray.push(imgUrl);
-                      // console.log("urlArray", urlArray)
-                    });
+                    
                     let maker = {
                       position: place.geometry.location,
                       icon: icon,
                       id: place.place_id,
                       title: place.name,
-                      photos: urlArray,
                       destination: false,
                     };
                     this.markers.push(maker);
@@ -490,8 +482,15 @@ export default Vue.extend({
       new google.maps.Circle(googleCircleOptions);
     },
     selectDateSpot(placeId: number, placeName: string): void {
+      
+      
+      
+      
       this.dialog = true;
       this.dialogShow = true;
+      
+      // 前回の表示をリセット 
+      this.selectedPlace.dateSpot.photos = []; //写真はスポットによって枚数が異なる
 
       // nearBySearchで取得できた情報は利用する (ポップアップ表示の際に店名などの崩れを防ぐため)
       this.selectedPlace.dateSpot.title = placeName;
@@ -499,7 +498,8 @@ export default Vue.extend({
       // 場所の詳細情報を取得
       let map = (this as any).$refs.mapRef.$mapObject;
       let placeService = new google.maps.places.PlacesService(map);
-      // インスタンスを作成してplace_detailsを呼び出してcallバックの中で写真をthis.selectedPlacePhotosの中に入れればOK
+      
+      // 詳細情報のリクエスト内容
       var request = {
         placeId: placeId,
         fields: [
@@ -518,14 +518,26 @@ export default Vue.extend({
         function (this: any, result: any, status: any) {
           if (status == google.maps.places.PlacesServiceStatus.OK) {
             console.log("place details results", result);
-            let urlArray = new Array();
-            result.photos.forEach(function (photoInfo: any) {
-              let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
-              urlArray.push(imgUrl);
-            });
-
+            
+            // 画像があるかを確認
+            let imgUrlArray = new Array();
+            if ("photos" in result) {
+              result.photos.forEach((photoInfo: any)  =>  {
+                let imgUrl = photoInfo.getUrl({ maxWidth: 640 });
+                imgUrlArray.push(imgUrl);
+              });
+            }
+            else {
+              // 画像がない場合は "No Image"を表示させる
+              imgUrlArray.push(require("../assets/img/noImage.png"));
+            }
+            
             this.selectedPlace.dateSpot.title = result.name;
-            this.selectedPlace.dateSpot.photos = urlArray;
+            this.selectedPlace.dateSpot.photos = imgUrlArray;
+            console.log("写真の中身", this.selectedPlace.dateSpot.photos);
+            // "https://maps.googleapis.com/maps/api/place/js/PhotoService.GetPhoto?1sAap_uECTmWVqI2QKgilOKh0TazgFKxLVr118kv5XJ7wneMsJfstEjv3zh-mNTskH3LbhVEjj11ezI2HQogVdoREfXNjJm4IrcqJEdD3-8_mT-TQgfVsOX7e4xLz9PokWQ8cnGHJ_9EGN6mRytqTxB2WnUlpQI4BVkaO8FtraN_MwZy161Gk2&3u640&5m1&2e1&callback=none&key=AIzaSyDVsndM5LyMAb5If-6D9T2rw0myLdlC1Vk&token=39180"
+            //"https://maps.googleapis.com/maps/api/place/js/PhotoService.GetPhoto?1sAap_uECTmWVqI2QKgilOKh0TazgFKxLVr118kv5XJ7wneMsJfstEjv3zh-mNTskH3LbhVEjj11ezI2HQogVdoREfXNjJm4IrcqJEdD3-8_mT-TQgfVsOX7e4xLz9PokWQ8cnGHJ_9EGN6mRytqTxB2WnUlpQI4BVkaO8FtraN_MwZy161Gk2&3u640&5m1&2e1&callback=none&key=AIzaSyDVsndM5LyMAb5If-6D9T2rw0myLdlC1Vk&token=39180"
+            // "https://maps.googleapis.com/maps/api/place/js/PhotoService.GetPhoto?1sAap_uEB27XFrt3pgk3IvkIpp5gjgKYuOjfVU6EUHWfcYObXwxoLgJLyadtIWSYZlNWf0JuGBhmyqwatl0etW3SpsslYTuUqkYESG1YqOvU9T0E0GoK7l-P-9xLAME_uUkL0rlIHTw2CozVoOxXnvq4OK15rCoys00UOmYCA4AKkdM9ZPNIb-&3u640&5m1&2e1&callback=none&key=AIzaSyDVsndM5LyMAb5If-6D9T2rw0myLdlC1Vk&token=22972"
             this.selectedPlace.dateSpot.priceLevel = result.price_level;
             this.selectedPlace.dateSpot.rating = result.rating;
             this.selectedPlace.dateSpot.reviews = result.reviews;
