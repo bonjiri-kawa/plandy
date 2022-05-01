@@ -85,14 +85,23 @@
 
             <v-list-item-content>
               <v-list-item-title>{{ dateSpot.name }}</v-list-item-title>
-              <v-list-item-subtitle>
+              <v-list-item-subtitle class="my-1">
                 <star-rating
+                class="mb-1"
                   v-model="dateSpot.rating"
                   active-color="#f00"
                   v-bind:star-size="10"
                 >
                 </star-rating>
-                <p>タイプ:{{ dateSpot.types.join() }}</p>
+                
+                <v-icon
+                  v-for="type in dateSpot.types"
+                  :key="type"
+                  color="green darken-2"
+                  >{{typeIconList[type]}}</v-icon
+                >
+                <!-- TODO レスポンスの中のタイプは、リクエストとは種類が違うので対応しないといけない -->
+                <!-- <p>タイプ:{{ dateSpot.types.join() }}</p> -->
               </v-list-item-subtitle>
               <v-divider></v-divider>
             </v-list-item-content>
@@ -191,6 +200,7 @@ declare let google: any;
 import draggable from "vuedraggable";
 import StarRating from "vue-star-rating";
 import { defaultFeelingItems } from "../assets/js/feelingItems.js";
+import { defaultTypeIcon } from "../assets/js/typeIcon.js";
 
 document.addEventListener("touchstart", function () {}, { passive: true });
 
@@ -259,6 +269,7 @@ interface Data {
   selectedItem: number; // ??
   feelingItems: object[];
   selectedFeelingItems: string[];
+  typeIconList:object
 }
 
 export default Vue.extend({
@@ -315,6 +326,7 @@ export default Vue.extend({
       selectedItem: 1,
       feelingItems: defaultFeelingItems,
       selectedFeelingItems: [],
+      typeIconList:defaultTypeIcon
     };
   },
   components: {
