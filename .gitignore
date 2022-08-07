@@ -2,3 +2,4 @@
 .nuxt/*
 .history/*
 package-lock.json
+/dist
